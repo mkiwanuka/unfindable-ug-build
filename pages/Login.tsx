@@ -1,9 +1,8 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserRole, User } from '../types';
-import { Mail, Smartphone, Globe, Loader2, AlertCircle } from 'lucide-react';
-import { api } from '../lib/api';
+import { Mail, Globe, Smartphone, Loader2, AlertCircle } from 'lucide-react';
+import { supabase } from '../src/integrations/supabase/client';
+import { User } from '../types';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -22,23 +21,111 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        // User is already logged in, redirect to dashboard
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile) {
+          const user: User = {
+            id: session.user.id,
+            email: session.user.email || '',
+            name: profile.name,
+            avatar: profile.avatar,
+            role: 'requester', // Default role
+            joinedDate: profile.joined_date || new Date().toISOString(),
+            rating: profile.rating || 0,
+            completedTasks: profile.completed_tasks || 0,
+            bio: profile.bio || '',
+            skills: profile.skills || [],
+            location: profile.location || '',
+            responseTime: profile.response_time || '',
+            verified: profile.verified || false,
+            balance: profile.balance || 0,
+          };
+          onLogin(user);
+          navigate('/dashboard');
+        }
+      }
+    };
+
+    checkSession();
+
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          // Defer the profile fetch to avoid deadlock
+          setTimeout(async () => {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+
+            if (profile) {
+              const user: User = {
+                id: session.user.id,
+                email: session.user.email || '',
+                name: profile.name,
+                avatar: profile.avatar,
+                role: 'requester',
+                joinedDate: profile.joined_date || new Date().toISOString(),
+                rating: profile.rating || 0,
+                completedTasks: profile.completed_tasks || 0,
+                bio: profile.bio || '',
+                skills: profile.skills || [],
+                location: profile.location || '',
+                responseTime: profile.response_time || '',
+                verified: profile.verified || false,
+                balance: profile.balance || 0,
+              };
+              onLogin(user);
+              navigate('/dashboard');
+            }
+          }, 0);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, [navigate, onLogin]);
 
   // Handle input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
     if (error) setError(null);
+    if (successMessage) setSuccessMessage(null);
   };
 
   // Handle Form Submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccessMessage(null);
     setIsLoading(true);
 
     // Basic Validation
     if (!formData.email || !formData.password) {
       setError("Please fill in all required fields.");
+      setIsLoading(false);
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError("Please enter a valid email address.");
       setIsLoading(false);
       return;
     }
@@ -56,16 +143,48 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }
 
     try {
-      let user;
       if (isSignup) {
-        user = await api.auth.signup(formData);
+        // Sign up with email redirect
+        const redirectUrl = `${window.location.origin}/`;
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            emailRedirectTo: redirectUrl,
+            data: {
+              firstName: formData.firstName,
+              lastName: formData.lastName,
+            }
+          }
+        });
+
+        if (signUpError) {
+          if (signUpError.message.includes('already registered')) {
+            setError('This email is already registered. Please sign in instead.');
+          } else {
+            setError(signUpError.message);
+          }
+        } else if (data.user) {
+          setSuccessMessage('Account created! Please check your email to confirm your account.');
+        }
       } else {
-        user = await api.auth.login(formData.email, formData.password);
+        // Sign in
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
+        });
+
+        if (signInError) {
+          if (signInError.message.includes('Invalid login credentials')) {
+            setError('Invalid email or password. Please try again.');
+          } else if (signInError.message.includes('Email not confirmed')) {
+            setError('Please confirm your email address before signing in.');
+          } else {
+            setError(signInError.message);
+          }
+        }
+        // Navigation will be handled by onAuthStateChange
       }
-      
-      onLogin(user);
-      navigate('/dashboard');
-      
     } catch (err: any) {
       setError(err.message || "Authentication failed. Please try again.");
     } finally {
@@ -76,6 +195,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const toggleMode = () => {
     setIsSignup(!isSignup);
     setError(null);
+    setSuccessMessage(null);
     setFormData({ firstName: '', lastName: '', email: '', password: '' });
   };
 
@@ -98,6 +218,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm flex items-center">
                 <AlertCircle className="h-4 w-4 mr-2" />
                 {error}
+             </div>
+           )}
+
+           {successMessage && (
+             <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-md text-sm flex items-center">
+                <Mail className="h-4 w-4 mr-2" />
+                {successMessage}
              </div>
            )}
 
@@ -135,6 +262,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 value={formData.email}
                 onChange={handleInputChange}
                 placeholder="name@example.com" 
+                autoComplete="email"
                 className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-md focus:outline-none focus:ring-softTeal focus:border-softTeal sm:text-sm bg-[#F3F4F6]" 
               />
            </div>
@@ -146,6 +274,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 value={formData.password}
                 onChange={handleInputChange}
                 placeholder="••••••••" 
+                autoComplete={isSignup ? 'new-password' : 'current-password'}
                 className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-md focus:outline-none focus:ring-softTeal focus:border-softTeal sm:text-sm bg-[#F3F4F6]" 
               />
            </div>
@@ -177,10 +306,10 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-3">
-            <button type="button" className="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+            <button type="button" className="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors opacity-50 cursor-not-allowed" disabled>
                <Globe className="h-4 w-4 mr-2 text-red-500" /> Google
             </button>
-            <button type="button" className="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+            <button type="button" className="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors opacity-50 cursor-not-allowed" disabled>
                <Smartphone className="h-4 w-4 mr-2 text-gray-500" /> Phone
             </button>
           </div>
