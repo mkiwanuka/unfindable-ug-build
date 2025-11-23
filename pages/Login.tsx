@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Mail, Globe, Smartphone, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '../src/integrations/supabase/client';
 import { User } from '../types';
+import { api } from '../lib/api';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -28,30 +29,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        // User is already logged in, redirect to dashboard
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        if (profile) {
-          const user: User = {
-            id: session.user.id,
-            email: session.user.email || '',
-            name: profile.name,
-            avatar: profile.avatar,
-            role: 'requester', // Default role
-            joinedDate: profile.joined_date || new Date().toISOString(),
-            rating: profile.rating || 0,
-            completedTasks: profile.completed_tasks || 0,
-            bio: profile.bio || '',
-            skills: profile.skills || [],
-            location: profile.location || '',
-            responseTime: profile.response_time || '',
-            verified: profile.verified || false,
-            balance: profile.balance || 0,
-          };
+        // User is already logged in, fetch full user data with role
+        const user = await api.auth.getUser(session.user.id);
+        if (user) {
           onLogin(user);
           navigate('/dashboard');
         }
@@ -64,31 +44,10 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_IN' && session?.user) {
-          // Defer the profile fetch to avoid deadlock
+          // Defer the API call to avoid deadlock
           setTimeout(async () => {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-
-            if (profile) {
-              const user: User = {
-                id: session.user.id,
-                email: session.user.email || '',
-                name: profile.name,
-                avatar: profile.avatar,
-                role: 'requester',
-                joinedDate: profile.joined_date || new Date().toISOString(),
-                rating: profile.rating || 0,
-                completedTasks: profile.completed_tasks || 0,
-                bio: profile.bio || '',
-                skills: profile.skills || [],
-                location: profile.location || '',
-                responseTime: profile.response_time || '',
-                verified: profile.verified || false,
-                balance: profile.balance || 0,
-              };
+            const user = await api.auth.getUser(session.user.id);
+            if (user) {
               onLogin(user);
               navigate('/dashboard');
             }
