@@ -65,7 +65,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
 
     setIsUpdatingRole(true);
     try {
-      const updatedUser = await api.auth.updateUser(user.id, { role: newRole });
+      const updatedUser = await api.auth.updateUserRole(user.id, newRole);
       onUserUpdate(updatedUser);
       setActiveTab(newRole === 'finder' ? 'offers' : 'requests');
     } catch (error) {
@@ -181,12 +181,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
       }
       
       try {
-          const updatedUser = await api.auth.updateUser(user.id, {
+          // Update profile first
+          await api.auth.updateUser(user.id, {
               location: onboardingForm.location,
               bio: onboardingForm.bio,
-              skills: onboardingForm.skills,
-              role: 'finder'
+              skills: onboardingForm.skills
           });
+          
+          // Then update role
+          const updatedUser = await api.auth.updateUserRole(user.id, 'finder');
           onUserUpdate(updatedUser);
           setShowFinderOnboarding(false);
           setActiveTab('offers');
