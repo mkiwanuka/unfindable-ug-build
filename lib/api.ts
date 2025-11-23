@@ -149,16 +149,22 @@ export const api = {
     },
 
     async updateUser(userId: string, updates: Partial<User>): Promise<User> {
+      const updateData: any = {};
+      
+      if (updates.name !== undefined) updateData.name = updates.name;
+      if (updates.avatar !== undefined) updateData.avatar = updates.avatar;
+      if (updates.bio !== undefined) updateData.bio = updates.bio;
+      if (updates.location !== undefined) updateData.location = updates.location;
+      if (updates.skills !== undefined) updateData.skills = updates.skills;
+      if (updates.responseTime !== undefined) updateData.response_time = updates.responseTime;
+
+      if (Object.keys(updateData).length === 0) {
+        throw new Error('No valid fields to update');
+      }
+
       const { data: profile, error } = await supabase
         .from('profiles')
-        .update({
-          name: updates.name,
-          avatar: updates.avatar,
-          bio: updates.bio,
-          location: updates.location,
-          skills: updates.skills,
-          response_time: updates.responseTime,
-        })
+        .update(updateData)
         .eq('id', userId)
         .select()
         .single();
@@ -166,6 +172,26 @@ export const api = {
       if (error) throw error;
 
       return mapProfileToUser(profile);
+    },
+
+    async updateUserRole(userId: string, newRole: UserRole): Promise<User> {
+      // Delete existing role
+      const { error: deleteError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId);
+
+      if (deleteError) throw deleteError;
+
+      // Insert new role
+      const { error: insertError } = await supabase
+        .from('user_roles')
+        .insert({ user_id: userId, role: newRole });
+
+      if (insertError) throw insertError;
+
+      // Return updated user
+      return this.getUser(userId) as Promise<User>;
     },
   },
 
