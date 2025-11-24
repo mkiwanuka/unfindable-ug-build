@@ -199,18 +199,67 @@ export const api = {
     async getAll(): Promise<Request[]> {
       const { data, error } = await supabase
         .from('requests')
-        .select('*')
+        .select(`
+          *,
+          profiles!requests_posted_by_id_fkey (
+            *,
+            user_roles (role)
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      return Promise.all(data.map(mapRequestToRequest));
+      // Map the joined data to Request objects
+      return data.map(dbRequest => {
+        const profile = (dbRequest as any).profiles;
+        const role = profile?.user_roles?.[0]?.role || 'guest';
+
+        const postedBy: User = profile ? {
+          id: profile.id,
+          name: profile.name,
+          email: '',
+          role: role as UserRole,
+          avatar: profile.avatar,
+          bio: profile.bio,
+          location: profile.location,
+          joinedDate: profile.joined_date,
+          verified: profile.verified,
+          balance: parseFloat(profile.balance) || 0,
+          skills: profile.skills || [],
+          rating: parseFloat(profile.rating) || undefined,
+          completedTasks: profile.completed_tasks || 0,
+          responseTime: profile.response_time,
+        } : {
+          id: dbRequest.posted_by_id,
+          name: 'Unknown User',
+          email: '',
+          role: 'guest' as UserRole,
+          avatar: '',
+        };
+
+        return {
+          id: dbRequest.id,
+          title: dbRequest.title,
+          category: dbRequest.category,
+          description: dbRequest.description,
+          budgetMin: Number(dbRequest.budget_min),
+          budgetMax: Number(dbRequest.budget_max),
+          deadline: dbRequest.deadline,
+          location: dbRequest.location,
+          status: dbRequest.status as 'Open' | 'In Progress' | 'Completed',
+          offerCount: dbRequest.offer_count,
+          imageUrl: dbRequest.image_url,
+          postedBy,
+          createdAt: dbRequest.created_at,
+        };
+      });
     },
 
     async create(requestData: Partial<Request>, user: User): Promise<Request> {
       const { data, error } = await supabase
         .from('requests')
-        .insert({
+        .insert([{
           title: requestData.title,
           category: requestData.category,
           description: requestData.description,
@@ -220,13 +269,53 @@ export const api = {
           location: requestData.location,
           image_url: requestData.imageUrl,
           posted_by_id: user.id,
-        })
-        .select()
+        }])
+        .select(`
+          *,
+          profiles!requests_posted_by_id_fkey (
+            *,
+            user_roles (role)
+          )
+        `)
         .single();
 
       if (error) throw error;
 
-      return mapRequestToRequest(data);
+      const profile = (data as any).profiles;
+      const role = profile?.user_roles?.[0]?.role || 'guest';
+
+      const postedBy: User = profile ? {
+        id: profile.id,
+        name: profile.name,
+        email: user.email,
+        role: role as UserRole,
+        avatar: profile.avatar,
+        bio: profile.bio,
+        location: profile.location,
+        joinedDate: profile.joined_date,
+        verified: profile.verified,
+        balance: parseFloat(profile.balance) || 0,
+        skills: profile.skills || [],
+        rating: parseFloat(profile.rating) || undefined,
+        completedTasks: profile.completed_tasks || 0,
+        responseTime: profile.response_time,
+      } : user;
+
+      return {
+        id: data.id,
+        title: data.title,
+        category: data.category,
+        description: data.description,
+        budgetMin: Number(data.budget_min),
+        budgetMax: Number(data.budget_max),
+        deadline: data.deadline,
+        location: data.location,
+        status: data.status as 'Open' | 'In Progress' | 'Completed',
+        offerCount: data.offer_count,
+        imageUrl: data.image_url,
+        postedBy,
+        createdAt: data.created_at,
+      };
     },
   },
 };
