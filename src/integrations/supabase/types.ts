@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      offers: {
+        Row: {
+          created_at: string | null
+          delivery_days: number
+          finder_id: string
+          id: string
+          message: string
+          price: number
+          request_id: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          delivery_days: number
+          finder_id: string
+          id?: string
+          message: string
+          price: number
+          request_id: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          delivery_days?: number
+          finder_id?: string
+          id?: string
+          message?: string
+          price?: number
+          request_id?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offers_finder_id_fkey"
+            columns: ["finder_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar: string | null

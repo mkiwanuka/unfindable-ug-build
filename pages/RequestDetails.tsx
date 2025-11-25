@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Request, Offer, User, UserRole } from '../types';
 import { MapPin, Clock, DollarSign, Share2, Flag, User as UserIcon, Star, Send, Package, CheckCircle, XCircle, Edit, X } from 'lucide-react';
+import { api } from '../lib/api';
 
 interface RequestDetailsProps {
   requests: Request[];
@@ -22,36 +23,31 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
   // Local state for request status to allow updates without backend
   const [localStatus, setLocalStatus] = useState(request?.status || 'Open');
 
-  // Mock Offers converted to state
+  // Real offers from database
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [loadingOffers, setLoadingOffers] = useState(false);
 
-  // Initialize/Reset state when request changes
+  // Fetch offers when request changes
   useEffect(() => {
     if (request) {
       setLocalStatus(request.status);
-      // Reset mock offers for the new request ID
-      setOffers([
-        {
-            id: '1',
-            requestId: request.id,
-            finder: { id: '2', name: 'Sarah Finder', email: 's@s.com', role: 'finder', avatar: 'https://ui-avatars.com/api/?name=Sarah+Finder&background=3A7CA5&color=fff', location: 'Austin, TX', verified: true } as User,
-            price: 95,
-            deliveryDays: 3,
-            message: 'I have this exact model in my collection. It is in mint condition and I can ship it tomorrow morning.',
-            status: 'Pending'
-        },
-        {
-            id: '2',
-            requestId: request.id,
-            finder: { id: '3', name: 'Mike Hunter', email: 'm@m.com', role: 'finder', avatar: 'https://ui-avatars.com/api/?name=Mike+Hunter&background=random', location: 'New York, NY' } as User,
-            price: 110,
-            deliveryDays: 2,
-            message: 'I can find this for you. I have a connection at a vintage shop.',
-            status: 'Pending'
-        }
-      ]);
+      fetchOffers();
     }
   }, [request?.id, request?.status]);
+
+  const fetchOffers = async () => {
+    if (!request) return;
+    
+    setLoadingOffers(true);
+    try {
+      const fetchedOffers = await api.offers.getByRequest(request.id);
+      setOffers(fetchedOffers);
+    } catch (error) {
+      console.error('Error fetching offers:', error);
+    } finally {
+      setLoadingOffers(false);
+    }
+  };
 
   if (!request) {
     return (
@@ -88,58 +84,73 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
     setOfferSent(false);
   };
 
-  const handleOfferSubmit = (e: React.FormEvent) => {
+  const handleOfferSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
+      if (!currentUser) return;
       
-      if (editingOfferId) {
+      try {
+        if (editingOfferId) {
           // Update existing offer
-          setOffers(offers.map(o => o.id === editingOfferId ? {
-              ...o,
-              price: Number(offerPrice),
-              deliveryDays: Number(deliveryTime),
-              message: message
-          } : o));
+          await api.offers.update(editingOfferId, {
+            price: Number(offerPrice),
+            deliveryDays: Number(deliveryTime),
+            message: message
+          });
           setEditingOfferId(null);
-      } else {
+        } else {
           // Create new offer
-          const newOffer: Offer = {
-              id: Math.random().toString(36).substr(2, 9),
-              requestId: request.id,
-              finder: currentUser!,
-              price: Number(offerPrice),
-              deliveryDays: Number(deliveryTime),
-              message: message,
-              status: 'Pending'
-          };
-          setOffers([...offers, newOffer]);
+          await api.offers.create({
+            requestId: request.id,
+            finderId: currentUser.id,
+            price: Number(offerPrice),
+            deliveryDays: Number(deliveryTime),
+            message: message
+          });
+        }
+        
+        // Refresh offers list
+        await fetchOffers();
+        
+        setOfferSent(true);
+        setOfferPrice('');
+        setDeliveryTime('');
+        setMessage('');
+      } catch (error) {
+        console.error('Error submitting offer:', error);
+        alert('Failed to submit offer. Please try again.');
       }
+  };
+
+  const handleAcceptOffer = async (offerId: string) => {
+    try {
+      // Update the specific offer to accepted
+      await api.offers.update(offerId, { status: 'Accepted' });
       
-      setOfferSent(true);
-      setOfferPrice('');
-      setDeliveryTime('');
-      setMessage('');
+      // Refresh offers list
+      await fetchOffers();
+      
+      // Update request status to In Progress
+      setLocalStatus('In Progress');
+    } catch (error) {
+      console.error('Error accepting offer:', error);
+      alert('Failed to accept offer. Please try again.');
+    }
   };
 
-  const handleAcceptOffer = (offerId: string) => {
-    // Update the specific offer to accepted
-    const updatedOffers = offers.map(offer => 
-        offer.id === offerId ? { ...offer, status: 'Accepted' as const } : offer
-    );
-    setOffers(updatedOffers);
-    
-    // Update request status to In Progress
-    setLocalStatus('In Progress');
-  };
-
-  const handleMarkCompleted = (offerId: string) => {
-    // Ensure the specific offer is accepted (if it wasn't already)
-    const updatedOffers = offers.map(offer => 
-        offer.id === offerId ? { ...offer, status: 'Accepted' as const } : offer
-    );
-    setOffers(updatedOffers);
-    
-    // Update request status to Completed
-    setLocalStatus('Completed');
+  const handleMarkCompleted = async (offerId: string) => {
+    try {
+      // Ensure the specific offer is accepted
+      await api.offers.update(offerId, { status: 'Accepted' });
+      
+      // Refresh offers list
+      await fetchOffers();
+      
+      // Update request status to Completed
+      setLocalStatus('Completed');
+    } catch (error) {
+      console.error('Error marking completed:', error);
+      alert('Failed to mark as completed. Please try again.');
+    }
   };
 
   const handleShare = async () => {

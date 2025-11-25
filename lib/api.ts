@@ -1,5 +1,5 @@
 import { supabase } from '../src/integrations/supabase/client';
-import { User, Request, UserRole } from '../types';
+import { User, Request, UserRole, Offer } from '../types';
 
 // Helper to map database profile + role to User type
 async function mapProfileToUser(profile: any, email?: string): Promise<User> {
@@ -316,6 +316,135 @@ export const api = {
         postedBy,
         createdAt: data.created_at,
       };
+    },
+  },
+
+  offers: {
+    async getByRequest(requestId: string): Promise<Offer[]> {
+      const { data, error } = await supabase
+        .from('offers')
+        .select(`
+          *,
+          profiles!offers_finder_id_fkey (
+            *,
+            user_roles (role)
+          )
+        `)
+        .eq('request_id', requestId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      return data.map(offer => {
+        const profile = (offer as any).profiles;
+        const role = profile?.user_roles?.[0]?.role || 'guest';
+
+        const finder: User = {
+          id: profile.id,
+          name: profile.name,
+          email: '',
+          role: role as UserRole,
+          avatar: profile.avatar,
+          bio: profile.bio,
+          location: profile.location,
+          joinedDate: profile.joined_date,
+          verified: profile.verified,
+          balance: parseFloat(profile.balance) || 0,
+          skills: profile.skills || [],
+          rating: parseFloat(profile.rating) || undefined,
+          completedTasks: profile.completed_tasks || 0,
+          responseTime: profile.response_time,
+        };
+
+        return {
+          id: offer.id,
+          requestId: offer.request_id,
+          finder,
+          price: Number(offer.price),
+          deliveryDays: offer.delivery_days,
+          message: offer.message,
+          status: offer.status as 'Pending' | 'Accepted' | 'Rejected',
+        };
+      });
+    },
+
+    async create(offerData: {
+      requestId: string;
+      finderId: string;
+      price: number;
+      deliveryDays: number;
+      message: string;
+    }): Promise<Offer> {
+      const { data, error } = await supabase
+        .from('offers')
+        .insert([{
+          request_id: offerData.requestId,
+          finder_id: offerData.finderId,
+          price: offerData.price,
+          delivery_days: offerData.deliveryDays,
+          message: offerData.message,
+        }])
+        .select(`
+          *,
+          profiles!offers_finder_id_fkey (
+            *,
+            user_roles (role)
+          )
+        `)
+        .single();
+
+      if (error) throw error;
+
+      const profile = (data as any).profiles;
+      const role = profile?.user_roles?.[0]?.role || 'guest';
+
+      const finder: User = {
+        id: profile.id,
+        name: profile.name,
+        email: '',
+        role: role as UserRole,
+        avatar: profile.avatar,
+        bio: profile.bio,
+        location: profile.location,
+        joinedDate: profile.joined_date,
+        verified: profile.verified,
+        balance: parseFloat(profile.balance) || 0,
+        skills: profile.skills || [],
+        rating: parseFloat(profile.rating) || undefined,
+        completedTasks: profile.completed_tasks || 0,
+        responseTime: profile.response_time,
+      };
+
+      return {
+        id: data.id,
+        requestId: data.request_id,
+        finder,
+        price: Number(data.price),
+        deliveryDays: data.delivery_days,
+        message: data.message,
+        status: data.status as 'Pending' | 'Accepted' | 'Rejected',
+      };
+    },
+
+    async update(offerId: string, updates: {
+      price?: number;
+      deliveryDays?: number;
+      message?: string;
+      status?: 'Pending' | 'Accepted' | 'Rejected';
+    }): Promise<void> {
+      const updateData: any = {};
+      
+      if (updates.price !== undefined) updateData.price = updates.price;
+      if (updates.deliveryDays !== undefined) updateData.delivery_days = updates.deliveryDays;
+      if (updates.message !== undefined) updateData.message = updates.message;
+      if (updates.status !== undefined) updateData.status = updates.status;
+
+      const { error } = await supabase
+        .from('offers')
+        .update(updateData)
+        .eq('id', offerId);
+
+      if (error) throw error;
     },
   },
 };
