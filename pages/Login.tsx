@@ -18,7 +18,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     firstName: '',
     lastName: '',
     email: '',
-    password: ''
+    password: '',
+    role: 'requester' as 'requester' | 'finder'
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -113,6 +114,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             data: {
               firstName: formData.firstName,
               lastName: formData.lastName,
+              selectedRole: formData.role
             }
           }
         });
@@ -155,7 +157,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setIsSignup(!isSignup);
     setError(null);
     setSuccessMessage(null);
-    setFormData({ firstName: '', lastName: '', email: '', password: '' });
+    setFormData({ firstName: '', lastName: '', email: '', password: '', role: 'requester' });
   };
 
   return (
@@ -188,30 +190,61 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
            )}
 
            {isSignup && (
-             <div className="flex space-x-4">
-                <div className="flex-1">
-                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                  <input 
-                    id="firstName" 
-                    type="text" 
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    placeholder="e.g. Alex" 
-                    className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-md focus:outline-none focus:ring-softTeal focus:border-softTeal sm:text-sm bg-[#F3F4F6]" 
-                  />
-                </div>
-                <div className="flex-1">
-                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                  <input 
-                    id="lastName" 
-                    type="text" 
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    placeholder="e.g. Doe" 
-                    className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-md focus:outline-none focus:ring-softTeal focus:border-softTeal sm:text-sm bg-[#F3F4F6]" 
-                  />
-                </div>
-             </div>
+             <>
+               <div className="flex space-x-4">
+                  <div className="flex-1">
+                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                    <input 
+                      id="firstName" 
+                      type="text" 
+                      value={formData.firstName}
+                      onChange={handleInputChange}
+                      placeholder="e.g. Alex" 
+                      className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-md focus:outline-none focus:ring-softTeal focus:border-softTeal sm:text-sm bg-[#F3F4F6]" 
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                    <input 
+                      id="lastName" 
+                      type="text" 
+                      value={formData.lastName}
+                      onChange={handleInputChange}
+                      placeholder="e.g. Doe" 
+                      className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-md focus:outline-none focus:ring-softTeal focus:border-softTeal sm:text-sm bg-[#F3F4F6]" 
+                    />
+                  </div>
+               </div>
+               
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-3">I want to...</label>
+                 <div className="grid grid-cols-2 gap-3">
+                   <button
+                     type="button"
+                     onClick={() => setFormData(prev => ({ ...prev, role: 'requester' }))}
+                     className={`py-3 px-4 border-2 rounded-lg text-sm font-medium transition-all ${
+                       formData.role === 'requester'
+                         ? 'border-deepBlue bg-deepBlue text-white shadow-md'
+                         : 'border-gray-300 bg-white text-gray-700 hover:border-deepBlue'
+                     }`}
+                   >
+                     Post Requests
+                   </button>
+                   <button
+                     type="button"
+                     onClick={() => setFormData(prev => ({ ...prev, role: 'finder' }))}
+                     className={`py-3 px-4 border-2 rounded-lg text-sm font-medium transition-all ${
+                       formData.role === 'finder'
+                         ? 'border-deepBlue bg-deepBlue text-white shadow-md'
+                         : 'border-gray-300 bg-white text-gray-700 hover:border-deepBlue'
+                     }`}
+                   >
+                     Find Items
+                   </button>
+                 </div>
+                 <p className="mt-2 text-xs text-gray-500">You can change your role anytime from your account settings</p>
+               </div>
+             </>
            )}
            <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
