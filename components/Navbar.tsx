@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, Bell, Menu, X, User as UserIcon, LogOut, PlusCircle } from 'lucide-react';
 import { User } from '../types';
@@ -11,7 +11,20 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <nav className="sticky top-0 z-50 bg-deepBlue text-white shadow-md">
@@ -51,16 +64,40 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                   <Bell className="h-6 w-6" />
                   <span className="absolute top-0 right-0 block h-2 w-2 rounded-full ring-2 ring-deepBlue bg-red-500"></span>
                 </Link>
-                <div className="relative group">
-                  <button className="flex items-center space-x-2 hover:bg-gray-700 p-2 rounded-full">
-                     <img src={user.avatar} alt="User" className="h-8 w-8 rounded-full border-2 border-softTeal" />
+                <div className="relative" ref={dropdownRef}>
+                  <button 
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="flex items-center space-x-2 hover:bg-gray-700 p-2 rounded-full"
+                  >
+                    <img src={user.avatar} alt="User" className="h-8 w-8 rounded-full border-2 border-softTeal" />
                   </button>
                   {/* Dropdown */}
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 text-gray-800 hidden group-hover:block border border-gray-200">
-                    <Link to={`/profile/${user.id}`} className="block px-4 py-2 text-sm hover:bg-gray-100">Public Profile</Link>
-                    <Link to="/dashboard" className="block px-4 py-2 text-sm hover:bg-gray-100">Settings</Link>
-                    <button onClick={onLogout} className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 text-red-600">Sign out</button>
-                  </div>
+                  {isDropdownOpen && (
+                    <div className="absolute right-0 top-full pt-2 z-50">
+                      <div className="w-48 bg-white rounded-md shadow-lg py-1 text-gray-800 border border-gray-200">
+                        <Link 
+                          to={`/profile/${user.id}`} 
+                          onClick={() => setIsDropdownOpen(false)} 
+                          className="block px-4 py-2 text-sm hover:bg-gray-100"
+                        >
+                          Public Profile
+                        </Link>
+                        <Link 
+                          to="/dashboard" 
+                          onClick={() => setIsDropdownOpen(false)} 
+                          className="block px-4 py-2 text-sm hover:bg-gray-100"
+                        >
+                          Settings
+                        </Link>
+                        <button 
+                          onClick={() => { onLogout(); setIsDropdownOpen(false); }} 
+                          className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 text-red-600"
+                        >
+                          Sign out
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </>
             ) : (
