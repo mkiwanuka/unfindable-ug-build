@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Send, Paperclip, CheckCircle, MoreVertical } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Send, Paperclip, MoreVertical } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../src/integrations/supabase/client';
+import { getOrCreateConversation } from '../lib/conversationUtils';
 
 interface ConversationWithDetails {
   id: string;
@@ -23,8 +24,15 @@ interface Message {
   created_at: string;
 }
 
+interface LocationState {
+  conversationId?: string;
+  startChatWithUserId?: string;
+  requestId?: string;
+}
+
 export const Messages: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<ConversationWithDetails[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -44,71 +52,107 @@ export const Messages: React.FC = () => {
   }, []);
 
   // Fetch conversations
-  useEffect(() => {
+  const fetchConversations = useCallback(async () => {
     if (!currentUserId) return;
+    
+    try {
+      const { data: convos, error } = await supabase
+        .from('conversations')
+        .select(`
+          id,
+          request_id,
+          requester_id,
+          finder_id,
+          updated_at,
+          requests(title)
+        `)
+        .or(`requester_id.eq.${currentUserId},finder_id.eq.${currentUserId}`)
+        .order('updated_at', { ascending: false });
 
-    const fetchConversations = async () => {
-      try {
-        const { data: convos, error } = await supabase
-          .from('conversations')
-          .select(`
-            id,
-            request_id,
-            requester_id,
-            finder_id,
-            updated_at,
-            requests(title)
-          `)
-          .or(`requester_id.eq.${currentUserId},finder_id.eq.${currentUserId}`)
-          .order('updated_at', { ascending: false });
+      if (error) throw error;
 
-        if (error) throw error;
+      // Fetch partner profiles and last messages
+      const conversationsWithDetails = await Promise.all(
+        (convos || []).map(async (convo: any) => {
+          const partnerId = convo.requester_id === currentUserId ? convo.finder_id : convo.requester_id;
+          
+          // Get partner profile
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, name, avatar')
+            .eq('id', partnerId)
+            .single();
 
-        // Fetch partner profiles and last messages
-        const conversationsWithDetails = await Promise.all(
-          (convos || []).map(async (convo: any) => {
-            const partnerId = convo.requester_id === currentUserId ? convo.finder_id : convo.requester_id;
-            
-            // Get partner profile
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('id, name, avatar')
-              .eq('id', partnerId)
-              .single();
+          // Get last message
+          const { data: lastMsg } = await supabase
+            .from('messages')
+            .select('content')
+            .eq('conversation_id', convo.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-            // Get last message
-            const { data: lastMsg } = await supabase
-              .from('messages')
-              .select('content')
-              .eq('conversation_id', convo.id)
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .single();
+          return {
+            id: convo.id,
+            request_id: convo.request_id,
+            partner: profile || { id: partnerId, name: 'Unknown', avatar: '' },
+            requestTitle: convo.requests?.title || 'General Inquiry',
+            lastMessage: lastMsg?.content || 'No messages yet',
+            updated_at: convo.updated_at
+          };
+        })
+      );
 
-            return {
-              id: convo.id,
-              request_id: convo.request_id,
-              partner: profile || { id: partnerId, name: 'Unknown', avatar: '' },
-              requestTitle: convo.requests?.title || 'General Inquiry',
-              lastMessage: lastMsg?.content || 'No messages yet',
-              updated_at: convo.updated_at
-            };
-          })
+      setConversations(conversationsWithDetails);
+      return conversationsWithDetails;
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUserId]);
+
+  useEffect(() => {
+    fetchConversations();
+  }, [fetchConversations]);
+
+  // Handle navigation state (starting a conversation from another page)
+  useEffect(() => {
+    const handleNavigationState = async () => {
+      const state = location.state as LocationState | null;
+      
+      if (!state || !currentUserId) return;
+      
+      // Case 1: Direct conversation ID passed
+      if (state.conversationId) {
+        setSelectedChatId(state.conversationId);
+        // Clear the state to prevent re-triggering
+        navigate(location.pathname, { replace: true, state: null });
+        return;
+      }
+      
+      // Case 2: Start chat with a specific user
+      if (state.startChatWithUserId) {
+        const convId = await getOrCreateConversation(
+          currentUserId,
+          state.startChatWithUserId,
+          state.requestId
         );
-
-        setConversations(conversationsWithDetails);
-        if (conversationsWithDetails.length > 0 && !selectedChatId) {
-          setSelectedChatId(conversationsWithDetails[0].id);
+        
+        if (convId) {
+          // Refresh conversations list to include the new one
+          await fetchConversations();
+          setSelectedChatId(convId);
         }
-      } catch (error) {
-        console.error('Error fetching conversations:', error);
-      } finally {
-        setLoading(false);
+        
+        // Clear the state to prevent re-triggering
+        navigate(location.pathname, { replace: true, state: null });
       }
     };
-
-    fetchConversations();
-  }, [currentUserId]);
+    
+    handleNavigationState();
+  }, [location.state, currentUserId, navigate, fetchConversations]);
 
   // Fetch messages for selected conversation
   useEffect(() => {

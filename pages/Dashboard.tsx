@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { User, Request } from '../types';
 import { Package, DollarSign, Star, Settings, FileText, ExternalLink, MessageSquare, Loader2, Camera, X, Plus, Check } from 'lucide-react';
 import { api } from '../lib/api';
@@ -12,6 +12,7 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpdate }) => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'requests' | 'offers' | 'earnings' | 'settings' | 'reviews'>(
     user.role === 'finder' ? 'offers' : 'requests'
   );
@@ -425,15 +426,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
              {activeTab === 'offers' && (
               <div className="space-y-6">
                 <h2 className="text-2xl font-bold text-deepBlue">My Offers</h2>
-                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
-                      <div>
-                        <h3 className="font-bold text-lg text-gray-800">Vintage Gameboy Color</h3>
-                        <p className="text-sm text-gray-500">Offered $95 - 3 Days Delivery</p>
-                        <div className="mt-2 flex space-x-3">
-                          <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-md font-semibold">Pending</span>
-                        </div>
-                      </div>
-                      <Link to="/messages" className="text-softTeal hover:underline text-sm font-medium">Message Requester</Link>
+                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <p className="text-gray-500 text-center py-4">
+                      Your offers will appear here. Browse requests and make offers to get started!
+                    </p>
+                    <div className="text-center mt-2">
+                      <Link to="/search" className="text-softTeal hover:underline text-sm font-medium">
+                        Browse Requests
+                      </Link>
+                    </div>
                   </div>
               </div>
              )}

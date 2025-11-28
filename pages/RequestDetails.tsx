@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Request, Offer, User, UserRole } from '../types';
-import { MapPin, Clock, DollarSign, Share2, Flag, User as UserIcon, Star, Send, Package, CheckCircle, XCircle, Edit, X } from 'lucide-react';
+import { MapPin, Clock, DollarSign, Share2, Flag, User as UserIcon, Star, Send, Package, CheckCircle, XCircle, Edit, X, Loader2 } from 'lucide-react';
 import { api } from '../lib/api';
+import { supabase } from '../src/integrations/supabase/client';
 
 interface RequestDetailsProps {
   requests: Request[];
@@ -12,6 +13,7 @@ interface RequestDetailsProps {
 
 export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, currentUser }) => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const request = requests.find(r => r.id === id);
   
   const [offerPrice, setOfferPrice] = useState('');
@@ -19,6 +21,7 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
   const [message, setMessage] = useState('');
   const [offerSent, setOfferSent] = useState(false);
   const [editingOfferId, setEditingOfferId] = useState<string | null>(null);
+  const [contactingUser, setContactingUser] = useState(false);
 
   // Local state for request status to allow updates without backend
   const [localStatus, setLocalStatus] = useState(request?.status || 'Open');
@@ -350,7 +353,33 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
                             <p className="text-sm text-gray-500">Joined 2021</p>
                         </div>
                     </div>
-                    <button className="w-full border border-gray-300 text-gray-700 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">Contact User</button>
+                    <button 
+                      onClick={async () => {
+                        // Check if user is logged in
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (!user) {
+                          alert('Please log in to contact the user');
+                          navigate('/login');
+                          return;
+                        }
+                        
+                        setContactingUser(true);
+                        // Navigate to messages with the request owner's ID
+                        navigate('/messages', { 
+                          state: { 
+                            startChatWithUserId: request.postedBy.id,
+                            requestId: request.id
+                          } 
+                        });
+                      }}
+                      disabled={contactingUser}
+                      className="w-full border border-gray-300 text-gray-700 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 flex items-center justify-center disabled:opacity-50"
+                    >
+                      {contactingUser ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : null}
+                      Contact User
+                    </button>
                 </div>
 
                 {/* Make an Offer Form */}
