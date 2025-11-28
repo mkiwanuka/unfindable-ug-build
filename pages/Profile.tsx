@@ -4,12 +4,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { User } from '../types';
 import { MapPin, Calendar, Star, CheckCircle, Shield, MessageSquare, Loader2 } from 'lucide-react';
 import { api } from '../lib/api';
+import { supabase } from '../src/integrations/supabase/client';
 
 export const Profile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [messagingLoading, setMessagingLoading] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -26,6 +28,26 @@ export const Profile: React.FC = () => {
     };
     fetchUser();
   }, [id]);
+
+  const handleMessageClick = async () => {
+    if (!profileUser) return;
+    
+    // Check if user is logged in
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      alert('Please log in to send a message');
+      navigate('/login');
+      return;
+    }
+    
+    // Navigate with the user ID to start a conversation
+    setMessagingLoading(true);
+    navigate('/messages', { 
+      state: { 
+        startChatWithUserId: profileUser.id 
+      } 
+    });
+  };
 
   if (loading) {
     return (
@@ -70,10 +92,16 @@ export const Profile: React.FC = () => {
                         </div>
                         <div className="mt-4 md:mt-0 flex space-x-3">
                             <button 
-                              onClick={() => navigate('/messages', { state: { startChatWith: { name: profileUser.name, avatar: profileUser.avatar } } })}
-                              className="px-6 py-2 bg-deepBlue text-white rounded-lg font-medium hover:bg-opacity-90 flex items-center"
+                              onClick={handleMessageClick}
+                              disabled={messagingLoading}
+                              className="px-6 py-2 bg-deepBlue text-white rounded-lg font-medium hover:bg-opacity-90 flex items-center disabled:opacity-50"
                             >
-                              <MessageSquare className="h-4 w-4 mr-2" /> Message
+                              {messagingLoading ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <MessageSquare className="h-4 w-4 mr-2" />
+                              )}
+                              Message
                             </button>
                         </div>
                     </div>
