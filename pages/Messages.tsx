@@ -154,6 +154,22 @@ export const Messages: React.FC = () => {
     handleNavigationState();
   }, [location.state, currentUserId, navigate, fetchConversations]);
 
+  // Mark messages as read
+  const markMessagesAsRead = async (conversationId: string) => {
+    if (!currentUserId) return;
+    
+    try {
+      await supabase
+        .from('messages')
+        .update({ read_at: new Date().toISOString() })
+        .eq('conversation_id', conversationId)
+        .neq('sender_id', currentUserId)
+        .is('read_at', null);
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
+    }
+  };
+
   // Fetch messages for selected conversation
   useEffect(() => {
     if (!selectedChatId) return;
@@ -168,6 +184,9 @@ export const Messages: React.FC = () => {
 
         if (error) throw error;
         setMessages(data || []);
+        
+        // Mark messages as read when conversation is opened
+        markMessagesAsRead(selectedChatId);
       } catch (error) {
         console.error('Error fetching messages:', error);
       }
@@ -187,7 +206,13 @@ export const Messages: React.FC = () => {
           filter: `conversation_id=eq.${selectedChatId}`
         },
         (payload) => {
-          setMessages(prev => [...prev, payload.new as Message]);
+          const newMessage = payload.new as Message;
+          setMessages(prev => [...prev, newMessage]);
+          
+          // Mark the new message as read if it's from someone else
+          if (newMessage.sender_id !== currentUserId) {
+            markMessagesAsRead(selectedChatId);
+          }
         }
       )
       .subscribe();
@@ -195,7 +220,7 @@ export const Messages: React.FC = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedChatId]);
+  }, [selectedChatId, currentUserId]);
 
   // Send message
   const handleSendMessage = async () => {
