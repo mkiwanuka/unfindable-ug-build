@@ -7,9 +7,10 @@ import { User } from '../types';
 interface NavbarProps {
   user: User | null;
   onLogout: () => void;
+  unreadMessageCount?: number;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
+export const Navbar: React.FC<NavbarProps> = ({ user, onLogout, unreadMessageCount = 0 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -42,7 +43,14 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
               {user && (
                 <>
                   <Link to="/dashboard" className="hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">Dashboard</Link>
-                  <Link to="/messages" className="hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">Messages</Link>
+                  <Link to="/messages" className="relative hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">
+                    Messages
+                    {unreadMessageCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                        {unreadMessageCount > 99 ? '99+' : unreadMessageCount}
+                      </span>
+                    )}
+                  </Link>
                 </>
               )}
               {user?.role === 'admin' && (
@@ -130,7 +138,14 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
           {user && (
             <>
               <Link to="/dashboard" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700">Dashboard</Link>
-              <Link to="/messages" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700">Messages</Link>
+              <Link to="/messages" className="flex items-center justify-between px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700">
+                Messages
+                {unreadMessageCount > 0 && (
+                  <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                    {unreadMessageCount > 99 ? '99+' : unreadMessageCount}
+                  </span>
+                )}
+              </Link>
               <Link to="/notifications" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700">Notifications</Link>
               <Link to={`/profile/${user.id}`} className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700">My Profile</Link>
               <button onClick={onLogout} className="block w-full text-left px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700 text-red-400">Sign out</button>

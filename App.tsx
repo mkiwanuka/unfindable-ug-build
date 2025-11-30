@@ -29,6 +29,7 @@ import { AccountSettings } from './pages/AccountSettings';
 import { Payments } from './pages/Payments';
 import { User, Request } from './types';
 import { api } from './lib/api';
+import { useUnreadMessageCount } from './hooks/useUnreadMessageCount';
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -42,6 +43,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
+  const unreadMessageCount = useUnreadMessageCount(user?.id ?? null);
 
   // Initial Load: Check Session & Get Requests
   useEffect(() => {
@@ -89,7 +91,7 @@ const App: React.FC = () => {
     <Router>
       <ScrollToTop />
       <div className="flex flex-col min-h-screen bg-offWhite font-sans text-gray-900">
-        <Navbar user={user} onLogout={handleLogout} />
+        <Navbar user={user} onLogout={handleLogout} unreadMessageCount={unreadMessageCount} />
         
         <main className="flex-grow">
           <Routes>
