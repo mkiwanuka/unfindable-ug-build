@@ -1,10 +1,98 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { User } from '../types';
 import { MapPin, Calendar, Star, CheckCircle, Shield, MessageSquare, Loader2 } from 'lucide-react';
 import { api } from '../lib/api';
 import { supabase } from '../src/integrations/supabase/client';
+import { useReviews, ReviewData } from '../hooks/useReviews';
+
+// Helper to format date
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+  return date.toLocaleDateString();
+};
+
+// ProfileReviews Component
+const ProfileReviews: React.FC<{ userId: string }> = ({ userId }) => {
+  const { reviews, loading, averageRating } = useReviews(userId);
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div className="flex justify-center items-center py-8">
+          <Loader2 className="h-6 w-6 text-softTeal animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-deepBlue">Reviews</h2>
+        {averageRating !== null && (
+          <div className="flex items-center">
+            <Star className="h-5 w-5 text-yellow-400 fill-current mr-1" />
+            <span className="font-bold text-lg">{averageRating}</span>
+            <span className="text-gray-500 ml-1">({reviews.length} reviews)</span>
+          </div>
+        )}
+      </div>
+      
+      {reviews.length === 0 ? (
+        <div className="text-gray-500 italic py-8 text-center">No reviews yet.</div>
+      ) : (
+        <div className="divide-y divide-gray-100">
+          {reviews.map((review) => (
+            <div key={review.id} className="py-4">
+              <div className="flex items-start gap-4">
+                {review.reviewer && (
+                  <img
+                    src={review.reviewer.avatar}
+                    alt={review.reviewer.name}
+                    className="h-10 w-10 rounded-full object-cover"
+                  />
+                )}
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <h4 className="font-bold text-gray-800">
+                      {review.reviewer?.name || 'Anonymous'}
+                    </h4>
+                    <span className="text-xs text-gray-500">{formatDate(review.created_at)}</span>
+                  </div>
+                  <div className="flex text-yellow-400 mb-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`h-4 w-4 ${star <= review.rating ? 'fill-current' : 'text-gray-300'}`}
+                      />
+                    ))}
+                  </div>
+                  {review.request && (
+                    <p className="text-xs text-gray-500 mb-1">
+                      For: {review.request.title}
+                    </p>
+                  )}
+                  {review.comment && (
+                    <p className="text-sm text-gray-600">{review.comment}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const Profile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -150,13 +238,8 @@ export const Profile: React.FC = () => {
                 </div>
             </div>
 
-            {/* Reviews Section - Placeholder */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-                <h2 className="text-2xl font-bold text-deepBlue mb-6">Reviews</h2>
-                <div className="grid grid-cols-1 gap-6">
-                    <div className="text-gray-500 italic">No reviews available.</div>
-                </div>
-            </div>
+            {/* Reviews Section */}
+            <ProfileReviews userId={profileUser.id} />
         </div>
     </div>
   );

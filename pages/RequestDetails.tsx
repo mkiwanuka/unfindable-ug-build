@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Request, Offer, User, UserRole } from '../types';
@@ -6,6 +5,8 @@ import { MapPin, Clock, DollarSign, Share2, Flag, User as UserIcon, Star, Send, 
 import { api } from '../lib/api';
 import { supabase } from '../src/integrations/supabase/client';
 import { ReportModal } from '../components/ReportModal';
+import { ReviewModal } from '../components/ReviewModal';
+import { useReviews } from '../hooks/useReviews';
 
 interface RequestDetailsProps {
   requests: Request[];
@@ -25,6 +26,11 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
   const [editingOfferId, setEditingOfferId] = useState<string | null>(null);
   const [contactingUser, setContactingUser] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewingOffer, setReviewingOffer] = useState<Offer | null>(null);
+  const [reviewedOfferIds, setReviewedOfferIds] = useState<Set<string>>(new Set());
+  
+  const { createReview, checkCanReview } = useReviews();
 
   // Local state for request status to allow updates without backend
   const [localStatus, setLocalStatus] = useState(request?.status || 'Open');
@@ -40,6 +46,48 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
       fetchOffers();
     }
   }, [request?.id, request?.status]);
+
+  // Check which offers have already been reviewed
+  useEffect(() => {
+    const checkReviews = async () => {
+      if (!currentUser || !request || offers.length === 0) return;
+      
+      const reviewedIds = new Set<string>();
+      for (const offer of offers) {
+        if (offer.status === 'Accepted') {
+          const canReview = await checkCanReview(currentUser.id, request.id);
+          if (!canReview) {
+            reviewedIds.add(offer.id);
+          }
+        }
+      }
+      setReviewedOfferIds(reviewedIds);
+    };
+    
+    checkReviews();
+  }, [currentUser, request, offers, checkCanReview]);
+
+  const handleOpenReviewModal = (offer: Offer) => {
+    setReviewingOffer(offer);
+    setShowReviewModal(true);
+  };
+
+  const handleSubmitReview = async (rating: number, comment: string) => {
+    if (!currentUser || !request || !reviewingOffer) return;
+    
+    await createReview({
+      reviewerId: currentUser.id,
+      reviewedId: reviewingOffer.finder.id,
+      requestId: request.id,
+      rating,
+      comment,
+    });
+    
+    // Mark this offer as reviewed
+    setReviewedOfferIds(prev => new Set([...prev, reviewingOffer.id]));
+    setShowReviewModal(false);
+    setReviewingOffer(null);
+  };
 
   const fetchOffers = async () => {
     if (!request) return;
@@ -129,9 +177,13 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
   };
 
   const handleAcceptOffer = async (offerId: string) => {
+    if (!request) return;
     try {
       // Update the specific offer to accepted
       await api.offers.update(offerId, { status: 'Accepted' });
+      
+      // Update request status in database
+      await api.requests.updateStatus(request.id, 'In Progress');
       
       // Refresh offers list and trigger parent refresh
       await fetchOffers();
@@ -146,9 +198,13 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
   };
 
   const handleMarkCompleted = async (offerId: string) => {
+    if (!request) return;
     try {
       // Ensure the specific offer is accepted
       await api.offers.update(offerId, { status: 'Accepted' });
+      
+      // Update request status in database
+      await api.requests.updateStatus(request.id, 'Completed');
       
       // Refresh offers list and trigger parent refresh
       await fetchOffers();
@@ -305,7 +361,8 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
                                         <div>
                                             <h4 className="font-bold text-gray-900">{offer.finder.name}</h4>
                                             <div className="flex items-center text-xs text-gray-500 mt-1">
-                                                <Star className="h-3 w-3 text-yellow-400 fill-current mr-1" /> 4.9 (24 reviews)
+                                                <Star className="h-3 w-3 text-yellow-400 fill-current mr-1" /> 
+                                                {offer.finder.rating ? `${offer.finder.rating} (${offer.finder.completedTasks || 0} tasks)` : 'New finder'}
                                             </div>
                                         </div>
                                         <span className={`flex items-center text-xs px-2.5 py-1 rounded-full font-semibold ${
@@ -352,6 +409,27 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
                                             >
                                                 <MessageCircle className="h-4 w-4 mr-2" /> Message {offer.finder.name.split(' ')[0]}
                                             </button>
+                                        </div>
+                                    )}
+
+                                    {/* Leave Review Button - For completed requests with accepted offers */}
+                                    {isRequester && localStatus === 'Completed' && offer.status === 'Accepted' && !reviewedOfferIds.has(offer.id) && (
+                                        <div className="mt-3">
+                                            <button 
+                                                onClick={() => handleOpenReviewModal(offer)}
+                                                className="bg-yellow-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-yellow-600 transition-colors flex items-center"
+                                            >
+                                                <Star className="h-4 w-4 mr-2" /> Leave Review
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* Show reviewed badge */}
+                                    {isRequester && localStatus === 'Completed' && offer.status === 'Accepted' && reviewedOfferIds.has(offer.id) && (
+                                        <div className="mt-3">
+                                            <span className="inline-flex items-center text-green-600 text-sm">
+                                                <CheckCircle className="h-4 w-4 mr-1" /> Review submitted
+                                            </span>
                                         </div>
                                     )}
 
@@ -526,6 +604,20 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
         reportedType="request"
         reportedId={request.id}
       />
+
+      {/* Review Modal */}
+      {reviewingOffer && (
+        <ReviewModal
+          isOpen={showReviewModal}
+          onClose={() => {
+            setShowReviewModal(false);
+            setReviewingOffer(null);
+          }}
+          onSubmit={handleSubmitReview}
+          finderName={reviewingOffer.finder.name}
+          requestTitle={request.title}
+        />
+      )}
     </div>
   );
 };

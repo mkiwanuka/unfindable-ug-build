@@ -1,9 +1,106 @@
-
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Request } from '../types';
 import { Package, Star, Settings, FileText, ExternalLink, MessageSquare, Loader2, Camera, X, Plus, Check } from 'lucide-react';
 import { api } from '../lib/api';
+import { useReviews, ReviewData } from '../hooks/useReviews';
+
+// Helper to format date
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+  return date.toLocaleDateString();
+};
+
+// ReviewsTab Component
+const ReviewsTab: React.FC<{ userId: string }> = ({ userId }) => {
+  const { reviews, loading, averageRating } = useReviews(userId);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold text-deepBlue">My Reviews</h2>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex justify-center">
+          <Loader2 className="h-6 w-6 text-softTeal animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-deepBlue">My Reviews</h2>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="flex items-center mb-6">
+          <div className="bg-gray-100 p-4 rounded-full mr-4">
+            <Star className="h-8 w-8 text-yellow-400 fill-current" />
+          </div>
+          <div>
+            <p className="text-3xl font-bold text-deepBlue">
+              {averageRating !== null ? averageRating : 'N/A'}
+            </p>
+            <p className="text-sm text-gray-500">
+              Average Rating ({reviews.length} reviews)
+            </p>
+          </div>
+        </div>
+        
+        {reviews.length === 0 ? (
+          <div className="text-gray-500 italic py-8 text-center">
+            No reviews yet. Complete tasks to receive reviews from requesters.
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {reviews.map((review) => (
+              <div key={review.id} className="py-4">
+                <div className="flex items-start gap-4">
+                  {review.reviewer && (
+                    <img
+                      src={review.reviewer.avatar}
+                      alt={review.reviewer.name}
+                      className="h-10 w-10 rounded-full object-cover"
+                    />
+                  )}
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <h4 className="font-bold text-gray-800">
+                        {review.reviewer?.name || 'Anonymous'}
+                      </h4>
+                      <span className="text-xs text-gray-500">{formatDate(review.created_at)}</span>
+                    </div>
+                    <div className="flex text-yellow-400 mb-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`h-3 w-3 ${star <= review.rating ? 'fill-current' : 'text-gray-300'}`}
+                        />
+                      ))}
+                    </div>
+                    {review.request && (
+                      <p className="text-xs text-gray-500 mb-1">
+                        For: {review.request.title}
+                      </p>
+                    )}
+                    {review.comment && (
+                      <p className="text-sm text-gray-600">{review.comment}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 interface DashboardProps {
   user: User;
@@ -432,32 +529,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
 
              {/* Reviews Tab (Finder Only) */}
             {activeTab === 'reviews' && (
-              <div className="space-y-6">
-                 <h2 className="text-2xl font-bold text-deepBlue">My Reviews</h2>
-                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                     <div className="flex items-center mb-6">
-                        <div className="bg-gray-100 p-4 rounded-full mr-4">
-                            <Star className="h-8 w-8 text-yellow-400 fill-current" />
-                        </div>
-                        <div>
-                            <p className="text-3xl font-bold text-deepBlue">4.9</p>
-                            <p className="text-sm text-gray-500">Average Rating</p>
-                        </div>
-                     </div>
-                     <div className="divide-y divide-gray-100">
-                        <div className="py-4">
-                            <div className="flex items-center justify-between mb-2">
-                                <h4 className="font-bold text-gray-800">Alex Requester</h4>
-                                <span className="text-xs text-gray-500">2 days ago</span>
-                            </div>
-                            <div className="flex text-yellow-400 mb-1">
-                                <Star className="h-3 w-3 fill-current" /><Star className="h-3 w-3 fill-current" /><Star className="h-3 w-3 fill-current" /><Star className="h-3 w-3 fill-current" /><Star className="h-3 w-3 fill-current" />
-                            </div>
-                            <p className="text-sm text-gray-600">Great service, found exactly what I needed.</p>
-                        </div>
-                     </div>
-                 </div>
-              </div>
+              <ReviewsTab userId={user.id} />
             )}
 
             {/* Settings Tab */}
