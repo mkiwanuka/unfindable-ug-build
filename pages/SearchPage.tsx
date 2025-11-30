@@ -147,6 +147,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({ requests }) => {
   };
 
   const filteredRequests = requests.filter(req => {
+    const isOpen = req.status === 'Open';
     const matchesCategory = categoryParam ? req.category === categoryParam : true;
     const matchesQuery = queryParam 
         ? (req.title.toLowerCase().includes(queryParam.toLowerCase()) || 
@@ -161,7 +162,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({ requests }) => {
           )
         : true;
 
-    return matchesCategory && matchesQuery && matchesSubcategory;
+    return isOpen && matchesCategory && matchesQuery && matchesSubcategory;
   });
   
   const categories = [
