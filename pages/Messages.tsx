@@ -6,6 +6,7 @@ import { getOrCreateConversation } from '../lib/conversationUtils';
 import { useConversations, useInvalidateConversations, ConversationWithDetails } from '../hooks/useConversations';
 import { VirtualizedMessages } from '../components/VirtualizedMessages';
 import { realtimeManager } from '../lib/realtimeManager';
+import { messageSchema } from '../lib/schemas';
 
 interface Message {
   id: string;
@@ -139,13 +140,24 @@ export const Messages: React.FC = () => {
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedChatId || !currentUserId) return;
 
+    // Validate message
+    const validation = messageSchema.safeParse({
+      conversationId: selectedChatId,
+      content: newMessage.trim(),
+    });
+
+    if (!validation.success) {
+      alert(validation.error.issues[0]?.message || 'Invalid message');
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('messages')
         .insert({
           conversation_id: selectedChatId,
           sender_id: currentUserId,
-          content: newMessage.trim()
+          content: validation.data.content
         });
 
       if (error) throw error;
