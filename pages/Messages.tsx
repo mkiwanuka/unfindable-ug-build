@@ -5,6 +5,7 @@ import { supabase } from '../src/integrations/supabase/client';
 import { getOrCreateConversation } from '../lib/conversationUtils';
 import { useConversations, useInvalidateConversations, ConversationWithDetails } from '../hooks/useConversations';
 import { VirtualizedMessages } from '../components/VirtualizedMessages';
+import { realtimeManager } from '../lib/realtimeManager';
 
 interface Message {
   id: string;
@@ -115,30 +116,22 @@ export const Messages: React.FC = () => {
 
     fetchMessages();
 
-    // Subscribe to new messages
-    const channel = supabase
-      .channel(`conversation-${selectedChatId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${selectedChatId}`
-        },
-        (payload) => {
-          const newMessage = payload.new as Message;
-          setMessages(prev => [...prev, newMessage]);
-          
-          if (newMessage.sender_id !== currentUserId) {
-            markMessagesAsRead(selectedChatId);
-          }
+    // Use consolidated realtime manager for new messages
+    const unsub = realtimeManager.subscribe('messages', 'INSERT', (payload) => {
+      const newMsg = payload.new as Message & { conversation_id: string };
+      
+      // Only add if it's for the current conversation
+      if (newMsg.conversation_id === selectedChatId) {
+        setMessages(prev => [...prev, newMsg]);
+        
+        if (newMsg.sender_id !== currentUserId) {
+          markMessagesAsRead(selectedChatId);
         }
-      )
-      .subscribe();
+      }
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      unsub();
     };
   }, [selectedChatId, currentUserId]);
 

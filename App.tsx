@@ -32,7 +32,7 @@ import { api } from './lib/api';
 import { useUnreadMessageCount } from './hooks/useUnreadMessageCount';
 import { useUnreadNotificationCount } from './hooks/useUnreadNotificationCount';
 import { useOpenRequests, useUpdateRequestInCache, useInvalidateRequests } from './hooks/useRequests';
-import { supabase } from './src/integrations/supabase/client';
+import { realtimeManager } from './lib/realtimeManager';
 
 // Create QueryClient with optimized defaults
 const queryClient = new QueryClient({
@@ -68,6 +68,14 @@ const AppContent: React.FC = () => {
   
   const requests = requestsData?.data ?? [];
 
+  // Initialize realtime manager once on mount
+  useEffect(() => {
+    realtimeManager.init();
+    return () => {
+      realtimeManager.cleanup();
+    };
+  }, []);
+
   // Initial Load: Check Session
   useEffect(() => {
     const init = async () => {
@@ -83,29 +91,19 @@ const AppContent: React.FC = () => {
     init();
   }, []);
 
-  // Real-time subscription for request updates
+  // Real-time subscription for request updates using consolidated manager
   useEffect(() => {
-    const channel = supabase
-      .channel('requests-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'requests'
-        },
-        (payload) => {
-          // Update React Query cache directly
-          updateRequestInCache(payload.new.id as string, {
-            offerCount: payload.new.offer_count,
-            status: payload.new.status as 'Open' | 'In Progress' | 'Completed'
-          });
-        }
-      )
-      .subscribe();
+    const unsub = realtimeManager.subscribe('requests', 'UPDATE', (payload) => {
+      // Update React Query cache directly
+      const newData = payload.new as { id: string; offer_count?: number; status?: string };
+      updateRequestInCache(newData.id, {
+        offerCount: newData.offer_count,
+        status: newData.status as 'Open' | 'In Progress' | 'Completed'
+      });
+    });
       
     return () => {
-      supabase.removeChannel(channel);
+      unsub();
     };
   }, [updateRequestInCache]);
 

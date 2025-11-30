@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../src/integrations/supabase/client';
+import { realtimeManager } from '../lib/realtimeManager';
 
 export function useUnreadMessageCount(userId: string | null): number {
   const [count, setCount] = useState(0);
@@ -42,40 +43,22 @@ export function useUnreadMessageCount(userId: string | null): number {
 
     fetchUnreadCount();
 
-    // Subscribe to new messages for real-time updates
-    const channel = supabase
-      .channel('unread-messages')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages'
-        },
-        (payload) => {
-          // If the message is not from the current user, increment count
-          if (payload.new && (payload.new as any).sender_id !== userId) {
-            setCount(prev => prev + 1);
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'messages'
-        },
-        () => {
-          // Always refetch count on any message update for robustness
-          // This handles read_at being set regardless of REPLICA IDENTITY
-          fetchUnreadCount();
-        }
-      )
-      .subscribe();
+    // Use consolidated realtime manager
+    const unsubInsert = realtimeManager.subscribe('messages', 'INSERT', (payload) => {
+      // If the message is not from the current user, increment count
+      if (payload.new && (payload.new as { sender_id: string }).sender_id !== userId) {
+        setCount(prev => prev + 1);
+      }
+    });
+
+    const unsubUpdate = realtimeManager.subscribe('messages', 'UPDATE', () => {
+      // Refetch count on any message update (handles read_at being set)
+      fetchUnreadCount();
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      unsubInsert();
+      unsubUpdate();
     };
   }, [userId]);
 
