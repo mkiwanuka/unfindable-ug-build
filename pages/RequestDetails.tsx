@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Request, Offer, User, UserRole } from '../types';
-import { MapPin, Clock, DollarSign, Share2, Flag, User as UserIcon, Star, Send, Package, CheckCircle, XCircle, Edit, X, Loader2 } from 'lucide-react';
+import { MapPin, Clock, DollarSign, Share2, Flag, User as UserIcon, Star, Send, Package, CheckCircle, XCircle, Edit, X, Loader2, MessageCircle } from 'lucide-react';
 import { api } from '../lib/api';
 import { supabase } from '../src/integrations/supabase/client';
 import { ReportModal } from '../components/ReportModal';
@@ -183,6 +183,22 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
     }
   };
 
+  const handleMessageFinder = async (finderId: string, finderName: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      alert('Please log in to message this user');
+      navigate('/login');
+      return;
+    }
+    
+    navigate('/messages', { 
+      state: { 
+        startChatWithUserId: finderId,
+        requestId: request.id
+      } 
+    });
+  };
+
   return (
     <div className="bg-offWhite min-h-screen pb-12">
        {/* Header */}
@@ -328,6 +344,14 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
                                                     <CheckCircle className="h-4 w-4 mr-2" /> Mark as Completed
                                                 </button>
                                             )}
+
+                                            {/* Message Finder Button */}
+                                            <button 
+                                                onClick={() => handleMessageFinder(offer.finder.id, offer.finder.name)}
+                                                className="border border-gray-300 text-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors flex items-center"
+                                            >
+                                                <MessageCircle className="h-4 w-4 mr-2" /> Message {offer.finder.name.split(' ')[0]}
+                                            </button>
                                         </div>
                                     )}
 
