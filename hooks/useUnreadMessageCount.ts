@@ -66,11 +66,10 @@ export function useUnreadMessageCount(userId: string | null): number {
           schema: 'public',
           table: 'messages'
         },
-        (payload) => {
-          // If read_at was just set, refetch count
-          if (payload.new && (payload.new as any).read_at && !(payload.old as any)?.read_at) {
-            fetchUnreadCount();
-          }
+        () => {
+          // Always refetch count on any message update for robustness
+          // This handles read_at being set regardless of REPLICA IDENTITY
+          fetchUnreadCount();
         }
       )
       .subscribe();
