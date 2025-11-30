@@ -81,7 +81,11 @@ const App: React.FC = () => {
         (payload) => {
           setRequests(prev => prev.map(r => 
             r.id === payload.new.id 
-              ? { ...r, offerCount: payload.new.offer_count }
+              ? { 
+                  ...r, 
+                  offerCount: payload.new.offer_count,
+                  status: payload.new.status as 'Open' | 'In Progress' | 'Completed'
+                }
               : r
           ));
         }

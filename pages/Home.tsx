@@ -104,7 +104,7 @@ export const Home: React.FC<HomeProps> = ({ featuredRequests }) => {
 
           {featuredRequests.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {featuredRequests.slice(0, 6).map((req) => (
+              {featuredRequests.filter(req => req.status === 'Open').slice(0, 6).map((req) => (
                 <div key={req.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-gray-100 flex flex-col">
                   <div className="h-48 bg-gray-200 relative">
                     <img src={req.imageUrl} alt={req.title} className="w-full h-full object-cover" />
