@@ -149,29 +149,23 @@ export const api = {
     },
 
     async updateUser(userId: string, updates: Partial<User>): Promise<User> {
-      const updateData: any = {};
-      
-      if (updates.name !== undefined) updateData.name = updates.name;
-      if (updates.avatar !== undefined) updateData.avatar = updates.avatar;
-      if (updates.bio !== undefined) updateData.bio = updates.bio;
-      if (updates.location !== undefined) updateData.location = updates.location;
-      if (updates.skills !== undefined) updateData.skills = updates.skills;
-      if (updates.responseTime !== undefined) updateData.response_time = updates.responseTime;
-
-      if (Object.keys(updateData).length === 0) {
-        throw new Error('No valid fields to update');
-      }
-
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .update(updateData)
-        .eq('id', userId)
-        .select()
-        .single();
+      // Use the secure RPC function instead of direct update
+      // This prevents users from modifying sensitive fields like balance, verified, rating
+      const { error } = await supabase.rpc('update_user_profile_secure', {
+        _name: updates.name ?? null,
+        _avatar: updates.avatar ?? null,
+        _bio: updates.bio ?? null,
+        _location: updates.location ?? null,
+        _skills: updates.skills ?? null,
+        _response_time: updates.responseTime ?? null,
+      });
 
       if (error) throw error;
 
-      return mapProfileToUser(profile);
+      // Fetch and return the updated profile
+      const updatedUser = await this.getUser(userId);
+      if (!updatedUser) throw new Error('Failed to fetch updated profile');
+      return updatedUser;
     },
 
     async updateUserRole(userId: string, newRole: UserRole): Promise<User> {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Flag, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '../src/integrations/supabase/client';
+import { reportSchema } from '../lib/schemas';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -57,8 +58,17 @@ export const ReportModal: React.FC<ReportModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reason) {
-      setError('Please select a reason for your report');
+    
+    // Validate using zod schema
+    const validation = reportSchema.safeParse({
+      reportedType,
+      reportedId,
+      reason,
+      description: description.trim() || null,
+    });
+
+    if (!validation.success) {
+      setError(validation.error.issues[0]?.message || 'Invalid input');
       return;
     }
 

@@ -5,6 +5,7 @@ import { Package, Star, Settings, FileText, ExternalLink, MessageSquare, Loader2
 import { api } from '../lib/api';
 import { useReviews, ReviewData } from '../hooks/useReviews';
 import { formatActivityDate, formatRelativeDate } from '../lib/dateUtils';
+import { profileUpdateSchema } from '../lib/schemas';
 
 // ReviewsTab Component
 const ReviewsTab: React.FC<{ userId: string }> = ({ userId }) => {
@@ -203,10 +204,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
   };
 
   const saveSettings = async () => {
+      // Validate using zod schema
+      const validation = profileUpdateSchema.safeParse({
+        name: settingsForm.name,
+        bio: settingsForm.bio,
+        location: settingsForm.location,
+        skills: settingsForm.skills,
+      });
+
+      if (!validation.success) {
+        alert(validation.error.issues[0]?.message || 'Invalid input');
+        return;
+      }
+
       try {
           const updatedUser = await api.auth.updateUser(user.id, {
               name: settingsForm.name,
-              email: settingsForm.email,
               bio: settingsForm.bio,
               location: settingsForm.location,
               skills: settingsForm.skills
@@ -257,6 +270,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
   };
 
   const completeOnboarding = async () => {
+      // Validate using zod schema
+      const validation = profileUpdateSchema.safeParse({
+        location: onboardingForm.location,
+        bio: onboardingForm.bio,
+        skills: onboardingForm.skills,
+      });
+
+      if (!validation.success) {
+        alert(validation.error.issues[0]?.message || 'Invalid input');
+        return;
+      }
+
       if (!onboardingForm.location || !onboardingForm.bio || onboardingForm.skills.length === 0) {
           alert("Please complete all fields.");
           return;

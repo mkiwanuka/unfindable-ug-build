@@ -8,6 +8,7 @@ import { supabase } from '../src/integrations/supabase/client';
 import { ReportModal } from '../components/ReportModal';
 import { ReviewModal } from '../components/ReviewModal';
 import { useReviews } from '../hooks/useReviews';
+import { offerSchema } from '../lib/schemas';
 
 interface RequestDetailsProps {
   requests: Request[];
@@ -142,6 +143,21 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
   const handleOfferSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!currentUser) return;
+      
+      // Validate using zod schema (for new offers)
+      if (!editingOfferId) {
+        const validation = offerSchema.safeParse({
+          requestId: request.id,
+          price: Number(offerPrice),
+          deliveryDays: Number(deliveryTime),
+          message: message,
+        });
+
+        if (!validation.success) {
+          alert(validation.error.issues[0]?.message || 'Invalid input');
+          return;
+        }
+      }
       
       try {
         if (editingOfferId) {

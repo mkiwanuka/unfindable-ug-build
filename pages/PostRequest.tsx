@@ -8,6 +8,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { User } from '../types';
+import { requestCreateSchema } from '../lib/schemas';
 
 interface PostRequestProps {
   currentUser: User;
@@ -139,7 +140,7 @@ export const PostRequest: React.FC<PostRequestProps> = ({ currentUser, onPostSuc
         }
         if (formData.additionalNotes) fullDescription += `\nNotes: ${formData.additionalNotes}`;
 
-        await api.requests.create({
+        const requestData = {
             title: formData.title,
             category: formData.category,
             description: fullDescription,
@@ -148,7 +149,17 @@ export const PostRequest: React.FC<PostRequestProps> = ({ currentUser, onPostSuc
             deadline: deadlineDate.toISOString().split('T')[0],
             location: formData.location,
             imageUrl: formData.images.length > 0 ? formData.images[0] : undefined
-        }, currentUser);
+        };
+
+        // Validate using zod schema
+        const validation = requestCreateSchema.safeParse(requestData);
+        if (!validation.success) {
+            alert(validation.error.issues[0]?.message || 'Invalid input');
+            setIsSubmitting(false);
+            return;
+        }
+
+        await api.requests.create(requestData, currentUser);
         
         onPostSuccess();
         setStep(8); // Success Step

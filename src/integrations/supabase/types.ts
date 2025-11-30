@@ -428,6 +428,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      update_user_profile_secure: {
+        Args: {
+          _avatar?: string
+          _bio?: string
+          _location?: string
+          _name?: string
+          _response_time?: string
+          _skills?: string[]
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "guest" | "requester" | "finder" | "admin"

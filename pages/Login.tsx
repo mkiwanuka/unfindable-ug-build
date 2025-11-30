@@ -4,6 +4,7 @@ import { Mail, Globe, Smartphone, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '../src/integrations/supabase/client';
 import { User } from '../types';
 import { api } from '../lib/api';
+import { loginSchema, signupSchema } from '../lib/schemas';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -75,31 +76,36 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setSuccessMessage(null);
     setIsLoading(true);
 
-    // Basic Validation
-    if (!formData.email || !formData.password) {
-      setError("Please fill in all required fields.");
+    // Validate using zod schemas
+    try {
+      if (isSignup) {
+        const result = signupSchema.safeParse({
+          email: formData.email,
+          password: formData.password,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          role: formData.role,
+        });
+        if (!result.success) {
+          setError(result.error.issues[0]?.message || 'Invalid input');
+          setIsLoading(false);
+          return;
+        }
+      } else {
+        const result = loginSchema.safeParse({
+          email: formData.email,
+          password: formData.password,
+        });
+        if (!result.success) {
+          setError(result.error.issues[0]?.message || 'Invalid input');
+          setIsLoading(false);
+          return;
+        }
+      }
+    } catch {
+      setError('Validation failed');
       setIsLoading(false);
       return;
-    }
-
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      setError("Please enter a valid email address.");
-      setIsLoading(false);
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters.");
-      setIsLoading(false);
-      return;
-    }
-
-    if (isSignup && (!formData.firstName || !formData.lastName)) {
-       setError("Please provide your full name.");
-       setIsLoading(false);
-       return;
     }
 
     try {
