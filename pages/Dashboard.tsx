@@ -4,20 +4,7 @@ import { User, Request } from '../types';
 import { Package, Star, Settings, FileText, ExternalLink, MessageSquare, Loader2, Camera, X, Plus, Check } from 'lucide-react';
 import { api } from '../lib/api';
 import { useReviews, ReviewData } from '../hooks/useReviews';
-
-// Helper to format date
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-  return date.toLocaleDateString();
-};
+import { formatActivityDate, formatRelativeDate } from '../lib/dateUtils';
 
 // ReviewsTab Component
 const ReviewsTab: React.FC<{ userId: string }> = ({ userId }) => {
@@ -73,7 +60,7 @@ const ReviewsTab: React.FC<{ userId: string }> = ({ userId }) => {
                       <h4 className="font-bold text-gray-800">
                         {review.reviewer?.name || 'Anonymous'}
                       </h4>
-                      <span className="text-xs text-gray-500">{formatDate(review.created_at)}</span>
+                      <span className="text-xs text-gray-500">{formatActivityDate(review.created_at)}</span>
                     </div>
                     <div className="flex text-yellow-400 mb-2">
                       {[1, 2, 3, 4, 5].map((star) => (
@@ -489,7 +476,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
                     <div key={req.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
                       <div className="flex-1">
                         <h3 className="font-bold text-lg text-gray-800">{req.title}</h3>
-                        <p className="text-sm text-gray-500">Posted on {req.createdAt}</p>
+                        <p className="text-sm text-gray-500">Posted {formatRelativeDate(req.createdAt)}</p>
                         <div className="mt-2 flex space-x-3">
                           <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-md font-semibold">{req.status}</span>
                           <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-md font-semibold">{req.offerCount} Offers Received</span>
