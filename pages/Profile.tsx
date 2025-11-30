@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { User } from '../types';
-import { MapPin, Calendar, Star, CheckCircle, Shield, MessageSquare, Loader2 } from 'lucide-react';
+import { MapPin, Calendar, Star, CheckCircle, Shield, MessageSquare, Loader2, Edit } from 'lucide-react';
 import { api } from '../lib/api';
 import { supabase } from '../src/integrations/supabase/client';
 import { useReviews, ReviewData } from '../hooks/useReviews';
@@ -100,6 +100,15 @@ export const Profile: React.FC = () => {
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [messagingLoading, setMessagingLoading] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id || null);
+    };
+    getCurrentUser();
+  }, []);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -116,6 +125,8 @@ export const Profile: React.FC = () => {
     };
     fetchUser();
   }, [id]);
+
+  const isOwnProfile = currentUserId && profileUser && currentUserId === profileUser.id;
 
   const handleMessageClick = async () => {
     if (!profileUser) return;
@@ -179,18 +190,28 @@ export const Profile: React.FC = () => {
                             </div>
                         </div>
                         <div className="mt-4 md:mt-0 flex space-x-3">
-                            <button 
-                              onClick={handleMessageClick}
-                              disabled={messagingLoading}
-                              className="px-6 py-2 bg-deepBlue text-white rounded-lg font-medium hover:bg-opacity-90 flex items-center disabled:opacity-50"
-                            >
-                              {messagingLoading ? (
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              ) : (
-                                <MessageSquare className="h-4 w-4 mr-2" />
-                              )}
-                              Message
-                            </button>
+                            {isOwnProfile ? (
+                              <button 
+                                onClick={() => navigate('/dashboard')}
+                                className="px-6 py-2 bg-softTeal text-white rounded-lg font-medium hover:bg-opacity-90 flex items-center"
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit Profile
+                              </button>
+                            ) : (
+                              <button 
+                                onClick={handleMessageClick}
+                                disabled={messagingLoading}
+                                className="px-6 py-2 bg-deepBlue text-white rounded-lg font-medium hover:bg-opacity-90 flex items-center disabled:opacity-50"
+                              >
+                                {messagingLoading ? (
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                  <MessageSquare className="h-4 w-4 mr-2" />
+                                )}
+                                Message
+                              </button>
+                            )}
                         </div>
                     </div>
                     
