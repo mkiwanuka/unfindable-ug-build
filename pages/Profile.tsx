@@ -3,22 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { User } from '../types';
 import { MapPin, Calendar, Star, CheckCircle, Shield, MessageSquare, Loader2, Edit } from 'lucide-react';
 import { api } from '../lib/api';
+import { formatJoinedDate, formatActivityDate } from '../lib/dateUtils';
 import { supabase } from '../src/integrations/supabase/client';
 import { useReviews, ReviewData } from '../hooks/useReviews';
-
-// Helper to format date
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-  return date.toLocaleDateString();
-};
 
 // ProfileReviews Component
 const ProfileReviews: React.FC<{ userId: string }> = ({ userId }) => {
@@ -66,7 +53,7 @@ const ProfileReviews: React.FC<{ userId: string }> = ({ userId }) => {
                     <h4 className="font-bold text-gray-800">
                       {review.reviewer?.name || 'Anonymous'}
                     </h4>
-                    <span className="text-xs text-gray-500">{formatDate(review.created_at)}</span>
+                    <span className="text-xs text-gray-500">{formatActivityDate(review.created_at)}</span>
                   </div>
                   <div className="flex text-yellow-400 mb-2">
                     {[1, 2, 3, 4, 5].map((star) => (
@@ -185,7 +172,7 @@ export const Profile: React.FC = () => {
                                 {profileUser.location && (
                                   <span className="flex items-center"><MapPin className="h-4 w-4 mr-1" /> {profileUser.location}</span>
                                 )}
-                                <span className="flex items-center"><Calendar className="h-4 w-4 mr-1" /> Joined {profileUser.joinedDate || 'Recently'}</span>
+                                <span className="flex items-center"><Calendar className="h-4 w-4 mr-1" /> Joined {formatJoinedDate(profileUser.joinedDate)}</span>
                                 <span className="flex items-center uppercase text-xs font-bold bg-gray-100 px-2 py-1 rounded text-gray-500">{profileUser.role}</span>
                             </div>
                         </div>

@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Request, Offer, User, UserRole } from '../types';
 import { MapPin, Clock, DollarSign, Share2, Flag, User as UserIcon, Star, Send, Package, CheckCircle, XCircle, Edit, X, Loader2, MessageCircle } from 'lucide-react';
 import { api } from '../lib/api';
+import { formatRelativeDate } from '../lib/dateUtils';
 import { supabase } from '../src/integrations/supabase/client';
 import { ReportModal } from '../components/ReportModal';
 import { ReviewModal } from '../components/ReviewModal';
@@ -271,7 +272,7 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
                             }`}>
                                 {localStatus}
                             </span>
-                            <span className="text-gray-500 text-sm flex items-center ml-2"><Clock className="h-3 w-3 mr-1" /> Posted {request.createdAt}</span>
+                            <span className="text-gray-500 text-sm flex items-center ml-2"><Clock className="h-3 w-3 mr-1" /> Posted {formatRelativeDate(request.createdAt)}</span>
                         </div>
                         <h1 className="text-3xl font-bold text-gray-900">{request.title}</h1>
                     </div>
