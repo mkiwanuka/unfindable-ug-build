@@ -5,6 +5,7 @@ import { Request, Offer, User, UserRole } from '../types';
 import { MapPin, Clock, DollarSign, Share2, Flag, User as UserIcon, Star, Send, Package, CheckCircle, XCircle, Edit, X, Loader2 } from 'lucide-react';
 import { api } from '../lib/api';
 import { supabase } from '../src/integrations/supabase/client';
+import { ReportModal } from '../components/ReportModal';
 
 interface RequestDetailsProps {
   requests: Request[];
@@ -22,6 +23,7 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
   const [offerSent, setOfferSent] = useState(false);
   const [editingOfferId, setEditingOfferId] = useState<string | null>(null);
   const [contactingUser, setContactingUser] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   // Local state for request status to allow updates without backend
   const [localStatus, setLocalStatus] = useState(request?.status || 'Open');
@@ -204,7 +206,18 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
                         >
                             <Share2 className="h-4 w-4 mr-2" /> Share
                         </button>
-                        <button className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 text-sm font-medium hover:text-red-600 transition-colors">
+                        <button 
+                            onClick={async () => {
+                              const { data: { user } } = await supabase.auth.getUser();
+                              if (!user) {
+                                alert('Please log in to report this request');
+                                navigate('/login');
+                                return;
+                              }
+                              setShowReportModal(true);
+                            }}
+                            className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 text-sm font-medium hover:text-red-600 transition-colors"
+                        >
                             <Flag className="h-4 w-4 mr-2" /> Report
                         </button>
                     </div>
@@ -477,6 +490,14 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
                 </div>
             </div>
        </div>
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        reportedType="request"
+        reportedId={request.id}
+      />
     </div>
   );
 };
