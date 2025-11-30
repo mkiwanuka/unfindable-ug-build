@@ -51,11 +51,12 @@ export const Messages: React.FC = () => {
     getCurrentUser();
   }, []);
 
-  // Fetch conversations
+  // Fetch conversations - OPTIMIZED: Single query with JOINs (fixes N+1 problem)
   const fetchConversations = useCallback(async () => {
     if (!currentUserId) return;
     
     try {
+      // Single query that fetches conversations with partner profiles and messages
       const { data: convos, error } = await supabase
         .from('conversations')
         .select(`
@@ -64,44 +65,39 @@ export const Messages: React.FC = () => {
           requester_id,
           finder_id,
           updated_at,
-          requests(title)
+          requests(title),
+          requester:profiles!conversations_requester_id_fkey(id, name, avatar),
+          finder:profiles!conversations_finder_id_fkey(id, name, avatar),
+          messages(id, content, created_at)
         `)
         .or(`requester_id.eq.${currentUserId},finder_id.eq.${currentUserId}`)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
 
-      // Fetch partner profiles and last messages
-      const conversationsWithDetails = await Promise.all(
-        (convos || []).map(async (convo: any) => {
-          const partnerId = convo.requester_id === currentUserId ? convo.finder_id : convo.requester_id;
-          
-          // Get partner profile
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('id, name, avatar')
-            .eq('id', partnerId)
-            .single();
+      // Process data client-side (no additional queries needed!)
+      const conversationsWithDetails = (convos || []).map((convo: any) => {
+        // Determine partner based on current user
+        const partner = convo.requester_id === currentUserId 
+          ? convo.finder 
+          : convo.requester;
+        
+        // Get last message by finding max created_at
+        const lastMsg = Array.isArray(convo.messages) && convo.messages.length > 0
+          ? convo.messages.reduce((a: any, b: any) => 
+              new Date(a.created_at) > new Date(b.created_at) ? a : b
+            )
+          : null;
 
-          // Get last message
-          const { data: lastMsg } = await supabase
-            .from('messages')
-            .select('content')
-            .eq('conversation_id', convo.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          return {
-            id: convo.id,
-            request_id: convo.request_id,
-            partner: profile || { id: partnerId, name: 'Unknown', avatar: '' },
-            requestTitle: convo.requests?.title || 'General Inquiry',
-            lastMessage: lastMsg?.content || 'No messages yet',
-            updated_at: convo.updated_at
-          };
-        })
-      );
+        return {
+          id: convo.id,
+          request_id: convo.request_id,
+          partner: partner || { id: 'unknown', name: 'Unknown', avatar: '' },
+          requestTitle: convo.requests?.title || 'General Inquiry',
+          lastMessage: lastMsg?.content || 'No messages yet',
+          updated_at: convo.updated_at
+        };
+      });
 
       setConversations(conversationsWithDetails);
       return conversationsWithDetails;
