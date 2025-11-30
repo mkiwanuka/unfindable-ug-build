@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, Package, MessageSquare, DollarSign, Info, CheckCheck } from 'lucide-react';
 import { supabase } from '../src/integrations/supabase/client';
+import { realtimeManager } from '../lib/realtimeManager';
 
 interface Notification {
   id: string;
@@ -21,16 +22,27 @@ export const Notifications: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>('all');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const fetchNotifications = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+  // Get current user on mount
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+      }
+    };
+    getCurrentUser();
+  }, []);
+
+  const fetchNotifications = useCallback(async () => {
+    if (!currentUserId) return;
 
     let query = supabase
       .from('notifications')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', currentUserId)
       .order('created_at', { ascending: false });
 
     if (filter === 'unread') {
@@ -45,31 +57,26 @@ export const Notifications: React.FC = () => {
       setNotifications(data);
     }
     setLoading(false);
-  };
+  }, [currentUserId, filter]);
 
   useEffect(() => {
+    if (!currentUserId) return;
+    
     fetchNotifications();
 
-    // Subscribe to real-time updates
-    const channel = supabase
-      .channel('notifications-page')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications'
-        },
-        () => {
-          fetchNotifications();
-        }
-      )
-      .subscribe();
+    // Use consolidated realtime manager
+    const unsub = realtimeManager.subscribe('notifications', '*', (payload) => {
+      const userId = (payload.new as { user_id?: string })?.user_id || 
+                     (payload.old as { user_id?: string })?.user_id;
+      if (userId === currentUserId) {
+        fetchNotifications();
+      }
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      unsub();
     };
-  }, [filter]);
+  }, [currentUserId, filter, fetchNotifications]);
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -129,13 +136,12 @@ export const Notifications: React.FC = () => {
   };
 
   const handleMarkAllAsRead = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!currentUserId) return;
 
     await supabase
       .from('notifications')
       .update({ read: true })
-      .eq('user_id', user.id)
+      .eq('user_id', currentUserId)
       .eq('read', false);
 
     fetchNotifications();

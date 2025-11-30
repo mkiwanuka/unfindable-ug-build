@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../src/integrations/supabase/client';
+import { realtimeManager } from '../lib/realtimeManager';
 
 export function useUnreadNotificationCount(userId: string | null): number {
   const [count, setCount] = useState(0);
@@ -24,37 +25,22 @@ export function useUnreadNotificationCount(userId: string | null): number {
 
     fetchUnreadCount();
 
-    // Subscribe to real-time changes
-    const channel = supabase
-      .channel('notification-count-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`
-        },
-        () => {
-          fetchUnreadCount();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`
-        },
-        () => {
-          fetchUnreadCount();
-        }
-      )
-      .subscribe();
+    // Use consolidated realtime manager
+    const unsubInsert = realtimeManager.subscribe('notifications', 'INSERT', (payload) => {
+      if ((payload.new as { user_id: string }).user_id === userId) {
+        fetchUnreadCount();
+      }
+    });
+
+    const unsubUpdate = realtimeManager.subscribe('notifications', 'UPDATE', (payload) => {
+      if ((payload.new as { user_id: string }).user_id === userId) {
+        fetchUnreadCount();
+      }
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      unsubInsert();
+      unsubUpdate();
     };
   }, [userId]);
 
