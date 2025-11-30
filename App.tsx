@@ -48,16 +48,16 @@ const App: React.FC = () => {
   const unreadMessageCount = useUnreadMessageCount(user?.id ?? null);
   const unreadNotificationCount = useUnreadNotificationCount(user?.id ?? null);
 
-  // Initial Load: Check Session & Get Requests
+  // Initial Load: Check Session & Get Requests (paginated)
   useEffect(() => {
     const init = async () => {
       try {
-        const [currentUser, allRequests] = await Promise.all([
+        const [currentUser, requestsResult] = await Promise.all([
           api.auth.getCurrentSession(),
-          api.requests.getAll()
+          api.requests.getAll({ limit: 50, status: 'Open' }) // Only load Open requests initially
         ]);
         setUser(currentUser);
-        setRequests(allRequests);
+        setRequests(requestsResult.data);
       } catch (error) {
         console.error("Failed to initialize app:", error);
       } finally {
@@ -97,10 +97,10 @@ const App: React.FC = () => {
     };
   }, []);
 
-  // Refresh requests helper
+  // Refresh requests helper (paginated)
   const refreshRequests = async () => {
-    const allRequests = await api.requests.getAll();
-    setRequests(allRequests);
+    const result = await api.requests.getAll({ limit: 50, status: 'Open' });
+    setRequests(result.data);
   };
 
   const handleLogin = (loggedInUser: User) => {

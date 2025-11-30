@@ -196,8 +196,17 @@ export const api = {
   },
 
   requests: {
-    async getAll(): Promise<Request[]> {
-      const { data, error } = await supabase
+    // OPTIMIZED: Paginated requests with optional status filter
+    async getAll(options: { 
+      page?: number; 
+      limit?: number; 
+      status?: 'Open' | 'In Progress' | 'Completed' | null;
+    } = {}): Promise<{ data: Request[]; count: number }> {
+      const { page = 1, limit = 50, status = null } = options;
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+
+      let query = supabase
         .from('requests')
         .select(`
           *,
@@ -205,13 +214,21 @@ export const api = {
             *,
             user_roles (role)
           )
-        `)
-        .order('created_at', { ascending: false });
+        `, { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      // Filter by status if provided
+      if (status) {
+        query = query.eq('status', status);
+      }
+
+      const { data, error, count } = await query;
 
       if (error) throw error;
 
       // Map the joined data to Request objects
-      return data.map(dbRequest => {
+      const requests = (data || []).map(dbRequest => {
         const profile = (dbRequest as any).profiles;
         const role = profile?.user_roles?.[0]?.role || 'guest';
 
@@ -254,6 +271,14 @@ export const api = {
           createdAt: dbRequest.created_at,
         };
       });
+
+      return { data: requests, count: count || 0 };
+    },
+
+    // Legacy method for backward compatibility
+    async getAllSimple(): Promise<Request[]> {
+      const result = await this.getAll({ limit: 100 });
+      return result.data;
     },
 
     async create(requestData: Partial<Request>, user: User): Promise<Request> {
