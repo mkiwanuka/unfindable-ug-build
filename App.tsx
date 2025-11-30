@@ -31,6 +31,7 @@ import { User, Request } from './types';
 import { api } from './lib/api';
 import { useUnreadMessageCount } from './hooks/useUnreadMessageCount';
 import { useUnreadNotificationCount } from './hooks/useUnreadNotificationCount';
+import { supabase } from './src/integrations/supabase/client';
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -64,6 +65,32 @@ const App: React.FC = () => {
       }
     };
     init();
+  }, []);
+
+  // Real-time subscription for request updates (e.g., offer_count changes)
+  useEffect(() => {
+    const channel = supabase
+      .channel('requests-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'requests'
+        },
+        (payload) => {
+          setRequests(prev => prev.map(r => 
+            r.id === payload.new.id 
+              ? { ...r, offerCount: payload.new.offer_count }
+              : r
+          ));
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Refresh requests helper
@@ -138,7 +165,7 @@ const App: React.FC = () => {
             <Route path="/profile/:id" element={<Profile />} />
 
             <Route path="/request/:id" element={
-              <RequestDetails requests={requests} currentUser={user} />
+              <RequestDetails requests={requests} currentUser={user} onOfferChange={refreshRequests} />
             } />
 
             <Route path="/admin" element={
