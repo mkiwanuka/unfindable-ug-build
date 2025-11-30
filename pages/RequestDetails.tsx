@@ -340,7 +340,7 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
                             </div>
                             <div>
                                 <p className="text-sm text-gray-500">Budget</p>
-                                <p className="font-bold text-gray-900">${request.budgetMin} - ${request.budgetMax}</p>
+                                <p className="font-bold text-gray-900">UGX {request.budgetMin.toLocaleString()} - {request.budgetMax.toLocaleString()}</p>
                             </div>
                         </div>
                         <div className="flex items-start">

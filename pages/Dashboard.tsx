@@ -349,7 +349,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
                             name="location"
                             value={onboardingForm.location}
                             onChange={handleOnboardingChange}
-                            placeholder="e.g. New York, USA"
+                            placeholder="e.g. Kampala, Uganda"
                             className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-softTeal focus:outline-none bg-[#F3F4F6]"
                         />
                      </div>
@@ -581,7 +581,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
                             name="location"
                             value={settingsForm.location}
                             onChange={handleSettingsChange}
-                            placeholder="e.g. London, UK"
+                            placeholder="e.g. Kampala, Uganda"
                             className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-softTeal focus:outline-none transition-all" 
                         />
                     </div>

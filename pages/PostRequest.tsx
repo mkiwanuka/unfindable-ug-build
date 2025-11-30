@@ -91,7 +91,7 @@ export const PostRequest: React.FC<PostRequestProps> = ({ currentUser, onPostSuc
     // Simulate geolocation API
     updateField('location', 'Locating...');
     setTimeout(() => {
-      updateField('location', 'San Francisco, CA (Current Location)');
+      updateField('location', 'Kampala, Uganda (Current Location)');
       updateField('locationType', 'auto');
     }, 1000);
   };
@@ -366,18 +366,18 @@ export const PostRequest: React.FC<PostRequestProps> = ({ currentUser, onPostSuc
       {formData.budgetType === 'range' ? (
         <div className="grid grid-cols-2 gap-6">
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Minimum ($)</label>
-                <input type="number" value={formData.budgetMin} onChange={e => updateField('budgetMin', e.target.value)} className="w-full border-gray-300 border rounded-lg px-4 py-3 focus:ring-2 focus:ring-softTeal focus:outline-none bg-[#F3F4F6]" placeholder="e.g. 100" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Minimum (UGX)</label>
+                <input type="number" value={formData.budgetMin} onChange={e => updateField('budgetMin', e.target.value)} className="w-full border-gray-300 border rounded-lg px-4 py-3 focus:ring-2 focus:ring-softTeal focus:outline-none bg-[#F3F4F6]" placeholder="e.g. 100,000" />
             </div>
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Maximum ($)</label>
-                <input type="number" value={formData.budgetMax} onChange={e => updateField('budgetMax', e.target.value)} className="w-full border-gray-300 border rounded-lg px-4 py-3 focus:ring-2 focus:ring-softTeal focus:outline-none bg-[#F3F4F6]" placeholder="e.g. 200" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Maximum (UGX)</label>
+                <input type="number" value={formData.budgetMax} onChange={e => updateField('budgetMax', e.target.value)} className="w-full border-gray-300 border rounded-lg px-4 py-3 focus:ring-2 focus:ring-softTeal focus:outline-none bg-[#F3F4F6]" placeholder="e.g. 500,000" />
             </div>
         </div>
       ) : (
         <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Total Budget ($)</label>
-            <input type="number" value={formData.budgetFixed} onChange={e => updateField('budgetFixed', e.target.value)} className="w-full border-gray-300 border rounded-lg px-4 py-3 focus:ring-2 focus:ring-softTeal focus:outline-none bg-[#F3F4F6]" placeholder="e.g. 150" />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Total Budget (UGX)</label>
+            <input type="number" value={formData.budgetFixed} onChange={e => updateField('budgetFixed', e.target.value)} className="w-full border-gray-300 border rounded-lg px-4 py-3 focus:ring-2 focus:ring-softTeal focus:outline-none bg-[#F3F4F6]" placeholder="e.g. 250,000" />
         </div>
       )}
 
@@ -401,13 +401,13 @@ export const PostRequest: React.FC<PostRequestProps> = ({ currentUser, onPostSuc
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Where should the item be found or delivered?</label>
         <div className="flex gap-2">
-             <input 
-               type="text" 
-               value={formData.location} 
-               onChange={e => updateField('location', e.target.value)} 
-               placeholder="Enter City, Zip, or Area" 
-               className="flex-1 border-gray-300 border rounded-lg px-4 py-3 focus:ring-2 focus:ring-softTeal focus:outline-none bg-[#F3F4F6]" 
-             />
+               <input 
+                type="text" 
+                value={formData.location} 
+                onChange={e => updateField('location', e.target.value)} 
+                placeholder="Enter City, District, or Area (e.g. Kampala, Wakiso)" 
+                className="flex-1 border-gray-300 border rounded-lg px-4 py-3 focus:ring-2 focus:ring-softTeal focus:outline-none bg-[#F3F4F6]" 
+              />
              <button 
                type="button"
                onClick={handleAutoDetectLocation}

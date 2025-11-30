@@ -298,7 +298,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({ requests }) => {
                                   <div className="p-6 flex-1 flex flex-col">
                                     <div className="mb-2">
                                       <h3 className="text-lg font-bold text-gray-800 line-clamp-1">{req.title}</h3>
-                                      <p className="text-softTeal font-bold mt-1">${req.budgetMin} - ${req.budgetMax}</p>
+                                      <p className="text-softTeal font-bold mt-1">UGX {req.budgetMin.toLocaleString()} - {req.budgetMax.toLocaleString()}</p>
                                     </div>
                                     <p className="text-gray-500 text-sm mb-4 line-clamp-2 flex-1">{req.description}</p>
                                     

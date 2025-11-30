@@ -86,7 +86,7 @@ export const AdminDashboard: React.FC = () => {
   ) || [];
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
+    return `UGX ${amount.toLocaleString('en-UG')}`;
   };
 
   const formatDate = (dateString: string) => {
@@ -229,7 +229,7 @@ export const AdminDashboard: React.FC = () => {
                                 <LineChart data={chartData || []}>
                                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'hsl(var(--muted-foreground))', fontSize: 12}} />
-                                  <YAxis axisLine={false} tickLine={false} tick={{fill: 'hsl(var(--muted-foreground))', fontSize: 12}} tickFormatter={(value) => `$${value}`} />
+                                  <YAxis axisLine={false} tickLine={false} tick={{fill: 'hsl(var(--muted-foreground))', fontSize: 12}} tickFormatter={(value) => `UGX ${value.toLocaleString()}`} />
                                   <Tooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', background: 'hsl(var(--card))'}} />
                                   <Line type="monotone" dataKey="revenue" stroke="hsl(var(--accent))" strokeWidth={3} dot={{r: 4}} activeDot={{r: 6}} />
                                 </LineChart>
