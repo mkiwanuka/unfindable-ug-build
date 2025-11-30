@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Request } from '../types';
-import { Package, DollarSign, Star, Settings, FileText, ExternalLink, MessageSquare, Loader2, Camera, X, Plus, Check } from 'lucide-react';
+import { Package, Star, Settings, FileText, ExternalLink, MessageSquare, Loader2, Camera, X, Plus, Check } from 'lucide-react';
 import { api } from '../lib/api';
 
 interface DashboardProps {
@@ -13,7 +13,7 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpdate }) => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'requests' | 'offers' | 'earnings' | 'settings' | 'reviews'>(
+  const [activeTab, setActiveTab] = useState<'requests' | 'offers' | 'settings' | 'reviews'>(
     user.role === 'finder' ? 'offers' : 'requests'
   );
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
@@ -39,9 +39,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const onboardingFileRef = useRef<HTMLInputElement>(null);
-
-  // Mock data for demonstration
-  const earnings = 1240.50;
 
   const SUGGESTED_SKILLS = [
     'Business & Office',
@@ -367,12 +364,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
                     <Package className="mr-3 h-5 w-5" /> My Offers
                   </button>
                   <button
-                    onClick={() => setActiveTab('earnings')}
-                    className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'earnings' ? 'bg-deepBlue text-white' : 'text-gray-600 hover:bg-gray-50'}`}
-                  >
-                    <DollarSign className="mr-3 h-5 w-5" /> Earnings
-                  </button>
-                  <button
                     onClick={() => setActiveTab('reviews')}
                     className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'reviews' ? 'bg-deepBlue text-white' : 'text-gray-600 hover:bg-gray-50'}`}
                   >
@@ -438,48 +429,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
                   </div>
               </div>
              )}
-
-            {/* Earnings Tab (Finder Only) */}
-            {activeTab === 'earnings' && (
-              <div className="space-y-6">
-                <div className="bg-gradient-to-r from-deepBlue to-blue-900 rounded-2xl p-8 text-white shadow-lg">
-                  <h2 className="text-lg opacity-80 mb-1">Available Balance</h2>
-                  <div className="text-4xl font-bold mb-6">${earnings.toLocaleString()}</div>
-                  <div className="flex space-x-4">
-                    <button className="bg-softTeal hover:bg-white hover:text-deepBlue transition-colors px-6 py-2 rounded-lg font-semibold">Withdraw Funds</button>
-                    <button className="bg-transparent border border-white border-opacity-30 hover:bg-white hover:bg-opacity-10 px-6 py-2 rounded-lg font-semibold">View History</button>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                  <h3 className="font-bold text-lg mb-4">Recent Transactions</h3>
-                  <table className="w-full text-sm text-left text-gray-500">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3">Request</th>
-                        <th className="px-6 py-3">Date</th>
-                        <th className="px-6 py-3">Amount</th>
-                        <th className="px-6 py-3">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="bg-white border-b">
-                        <td className="px-6 py-4 font-medium text-gray-900">Vintage Lamp Repair</td>
-                        <td className="px-6 py-4">Oct 24, 2023</td>
-                        <td className="px-6 py-4 text-green-600">+$150.00</td>
-                        <td className="px-6 py-4"><span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Completed</span></td>
-                      </tr>
-                       <tr className="bg-white">
-                        <td className="px-6 py-4 font-medium text-gray-900">Rare Book Finding</td>
-                        <td className="px-6 py-4">Oct 20, 2023</td>
-                        <td className="px-6 py-4 text-green-600">+$85.00</td>
-                        <td className="px-6 py-4"><span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Completed</span></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
 
              {/* Reviews Tab (Finder Only) */}
             {activeTab === 'reviews' && (
