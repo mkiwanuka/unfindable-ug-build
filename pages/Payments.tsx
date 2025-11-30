@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { CreditCard, ShieldCheck, DollarSign, ArrowRight } from 'lucide-react';
+import { CreditCard, ShieldCheck, DollarSign, ArrowRight, Smartphone } from 'lucide-react';
 
 export const Payments: React.FC = () => {
   return (
@@ -17,17 +17,17 @@ export const Payments: React.FC = () => {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
                 <div className="flex items-start">
                     <div className="bg-blue-50 p-3 rounded-full mr-4">
-                        <CreditCard className="h-6 w-6 text-softTeal" />
+                        <Smartphone className="h-6 w-6 text-softTeal" />
                     </div>
                     <div>
                         <h2 className="text-2xl font-bold text-deepBlue mb-4">Payment Methods</h2>
                         <p className="text-gray-600 mb-4">
-                            We support a variety of secure payment options for your convenience.
+                            We support a variety of secure payment options popular in Uganda for your convenience.
                         </p>
                         <ul className="space-y-3 text-gray-600 mb-6">
-                            <li className="flex items-start"><span className="mr-2 text-softTeal">•</span> <strong>Credit/Debit Cards:</strong> We accept all major cards including Visa, Mastercard, and Amex.</li>
-                            <li className="flex items-start"><span className="mr-2 text-softTeal">•</span> <strong>Digital Wallets:</strong> Pay quickly using Apple Pay or Google Pay.</li>
-                            <li className="flex items-start"><span className="mr-2 text-softTeal">•</span> <strong>Bank Transfers:</strong> For larger transactions, bank transfers are available.</li>
+                            <li className="flex items-start"><span className="mr-2 text-softTeal">•</span> <strong>Mobile Money:</strong> Pay easily using MTN Mobile Money, Airtel Money, or other mobile money services.</li>
+                            <li className="flex items-start"><span className="mr-2 text-softTeal">•</span> <strong>Credit/Debit Cards:</strong> We accept Visa and Mastercard for card payments.</li>
+                            <li className="flex items-start"><span className="mr-2 text-softTeal">•</span> <strong>Bank Transfers:</strong> For larger transactions, transfer directly from your Ugandan bank account (Stanbic, DFCU, Centenary, Equity, etc.).</li>
                         </ul>
                     </div>
                 </div>
@@ -65,9 +65,9 @@ export const Payments: React.FC = () => {
                             For Finders, accessing your earnings is simple and fast.
                         </p>
                         <ul className="space-y-3 text-gray-600 mb-6">
-                            <li className="flex items-start"><span className="mr-2 text-softTeal">•</span> <strong>Wallet Balance:</strong> Earnings are deposited into your Unfindable wallet upon completion.</li>
-                            <li className="flex items-start"><span className="mr-2 text-softTeal">•</span> <strong>Withdrawal Options:</strong> Transfer funds to your bank account, PayPal, or debit card.</li>
-                            <li className="flex items-start"><span className="mr-2 text-softTeal">•</span> <strong>Processing Time:</strong> Most withdrawals are processed within 1-3 business days.</li>
+                            <li className="flex items-start"><span className="mr-2 text-softTeal">•</span> <strong>Wallet Balance:</strong> Earnings are deposited into your Unfindable wallet upon completion (in UGX).</li>
+                            <li className="flex items-start"><span className="mr-2 text-softTeal">•</span> <strong>Withdrawal Options:</strong> Transfer funds to your Mobile Money account (MTN, Airtel) or bank account.</li>
+                            <li className="flex items-start"><span className="mr-2 text-softTeal">•</span> <strong>Processing Time:</strong> Mobile Money withdrawals are instant. Bank transfers are processed within 1-2 business days.</li>
                         </ul>
                         <Link to="/dashboard" className="text-softTeal font-medium hover:underline flex items-center">View Earnings <ArrowRight className="ml-1 h-4 w-4" /></Link>
                     </div>
