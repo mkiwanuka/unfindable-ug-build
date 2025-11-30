@@ -105,6 +105,42 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          read: boolean
+          reference_id: string | null
+          reference_type: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          reference_id?: string | null
+          reference_type?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          reference_id?: string | null
+          reference_type?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       offers: {
         Row: {
           created_at: string | null
