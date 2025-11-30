@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { Home } from './pages/Home';
@@ -27,11 +27,24 @@ import { SellingAndFinding } from './pages/SellingAndFinding';
 import { SafetyAndTrust } from './pages/SafetyAndTrust';
 import { AccountSettings } from './pages/AccountSettings';
 import { Payments } from './pages/Payments';
-import { User, Request } from './types';
+import { User } from './types';
 import { api } from './lib/api';
 import { useUnreadMessageCount } from './hooks/useUnreadMessageCount';
 import { useUnreadNotificationCount } from './hooks/useUnreadNotificationCount';
+import { useOpenRequests, useUpdateRequestInCache, useInvalidateRequests } from './hooks/useRequests';
 import { supabase } from './src/integrations/supabase/client';
+
+// Create QueryClient with optimized defaults
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 30, // 30 seconds
+      gcTime: 1000 * 60 * 5, // 5 minutes cache retention
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -41,23 +54,26 @@ const ScrollToTop = () => {
   return null;
 };
 
-const App: React.FC = () => {
+// Inner app component that uses React Query hooks
+const AppContent: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
   const unreadMessageCount = useUnreadMessageCount(user?.id ?? null);
   const unreadNotificationCount = useUnreadNotificationCount(user?.id ?? null);
+  
+  // Use React Query for requests
+  const { data: requestsData, isLoading: requestsLoading } = useOpenRequests(50);
+  const updateRequestInCache = useUpdateRequestInCache();
+  const invalidateRequests = useInvalidateRequests();
+  
+  const requests = requestsData?.data ?? [];
 
-  // Initial Load: Check Session & Get Requests (paginated)
+  // Initial Load: Check Session
   useEffect(() => {
     const init = async () => {
       try {
-        const [currentUser, requestsResult] = await Promise.all([
-          api.auth.getCurrentSession(),
-          api.requests.getAll({ limit: 50, status: 'Open' }) // Only load Open requests initially
-        ]);
+        const currentUser = await api.auth.getCurrentSession();
         setUser(currentUser);
-        setRequests(requestsResult.data);
       } catch (error) {
         console.error("Failed to initialize app:", error);
       } finally {
@@ -67,7 +83,7 @@ const App: React.FC = () => {
     init();
   }, []);
 
-  // Real-time subscription for request updates (e.g., offer_count changes)
+  // Real-time subscription for request updates
   useEffect(() => {
     const channel = supabase
       .channel('requests-changes')
@@ -79,15 +95,11 @@ const App: React.FC = () => {
           table: 'requests'
         },
         (payload) => {
-          setRequests(prev => prev.map(r => 
-            r.id === payload.new.id 
-              ? { 
-                  ...r, 
-                  offerCount: payload.new.offer_count,
-                  status: payload.new.status as 'Open' | 'In Progress' | 'Completed'
-                }
-              : r
-          ));
+          // Update React Query cache directly
+          updateRequestInCache(payload.new.id as string, {
+            offerCount: payload.new.offer_count,
+            status: payload.new.status as 'Open' | 'In Progress' | 'Completed'
+          });
         }
       )
       .subscribe();
@@ -95,13 +107,7 @@ const App: React.FC = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
-
-  // Refresh requests helper (paginated)
-  const refreshRequests = async () => {
-    const result = await api.requests.getAll({ limit: 50, status: 'Open' });
-    setRequests(result.data);
-  };
+  }, [updateRequestInCache]);
 
   const handleLogin = (loggedInUser: User) => {
     setUser(loggedInUser);
@@ -116,12 +122,12 @@ const App: React.FC = () => {
     setUser(updatedUser);
   };
 
-  if (loading) {
+  if (loading || requestsLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-offWhite">Loading Unfindable...</div>;
   }
 
   return (
-    <Router>
+    <>
       <ScrollToTop />
       <div className="flex flex-col min-h-screen bg-offWhite font-sans text-gray-900">
         <Navbar user={user} onLogout={handleLogout} unreadMessageCount={unreadMessageCount} unreadNotificationCount={unreadNotificationCount} />
@@ -151,7 +157,7 @@ const App: React.FC = () => {
             } />
 
             <Route path="/post-request" element={
-              user ? <PostRequest onPostSuccess={refreshRequests} currentUser={user} /> : <Navigate to="/login" replace />
+              user ? <PostRequest onPostSuccess={invalidateRequests} currentUser={user} /> : <Navigate to="/login" replace />
             } />
 
             <Route path="/dashboard" element={
@@ -169,7 +175,7 @@ const App: React.FC = () => {
             <Route path="/profile/:id" element={<Profile />} />
 
             <Route path="/request/:id" element={
-              <RequestDetails requests={requests} currentUser={user} onOfferChange={refreshRequests} />
+              <RequestDetails requests={requests} currentUser={user} onOfferChange={invalidateRequests} />
             } />
 
             <Route path="/admin" element={
@@ -180,7 +186,17 @@ const App: React.FC = () => {
 
         <Footer />
       </div>
-    </Router>
+    </>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <AppContent />
+      </Router>
+    </QueryClientProvider>
   );
 };
 

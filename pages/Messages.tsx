@@ -1,21 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Send, Paperclip, MoreVertical } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../src/integrations/supabase/client';
 import { getOrCreateConversation } from '../lib/conversationUtils';
-
-interface ConversationWithDetails {
-  id: string;
-  request_id: string | null;
-  partner: {
-    id: string;
-    name: string;
-    avatar: string;
-  };
-  requestTitle: string;
-  lastMessage: string;
-  updated_at: string;
-}
+import { useConversations, useInvalidateConversations, ConversationWithDetails } from '../hooks/useConversations';
+import { VirtualizedMessages } from '../components/VirtualizedMessages';
 
 interface Message {
   id: string;
@@ -34,11 +23,9 @@ export const Messages: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
-  const [conversations, setConversations] = useState<ConversationWithDetails[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
   // Get current user
   useEffect(() => {
@@ -51,67 +38,9 @@ export const Messages: React.FC = () => {
     getCurrentUser();
   }, []);
 
-  // Fetch conversations - OPTIMIZED: Single query with JOINs (fixes N+1 problem)
-  const fetchConversations = useCallback(async () => {
-    if (!currentUserId) return;
-    
-    try {
-      // Single query that fetches conversations with partner profiles and messages
-      const { data: convos, error } = await supabase
-        .from('conversations')
-        .select(`
-          id,
-          request_id,
-          requester_id,
-          finder_id,
-          updated_at,
-          requests(title),
-          requester:profiles!conversations_requester_id_fkey(id, name, avatar),
-          finder:profiles!conversations_finder_id_fkey(id, name, avatar),
-          messages(id, content, created_at)
-        `)
-        .or(`requester_id.eq.${currentUserId},finder_id.eq.${currentUserId}`)
-        .order('updated_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Process data client-side (no additional queries needed!)
-      const conversationsWithDetails = (convos || []).map((convo: any) => {
-        // Determine partner based on current user
-        const partner = convo.requester_id === currentUserId 
-          ? convo.finder 
-          : convo.requester;
-        
-        // Get last message by finding max created_at
-        const lastMsg = Array.isArray(convo.messages) && convo.messages.length > 0
-          ? convo.messages.reduce((a: any, b: any) => 
-              new Date(a.created_at) > new Date(b.created_at) ? a : b
-            )
-          : null;
-
-        return {
-          id: convo.id,
-          request_id: convo.request_id,
-          partner: partner || { id: 'unknown', name: 'Unknown', avatar: '' },
-          requestTitle: convo.requests?.title || 'General Inquiry',
-          lastMessage: lastMsg?.content || 'No messages yet',
-          updated_at: convo.updated_at
-        };
-      });
-
-      setConversations(conversationsWithDetails);
-      return conversationsWithDetails;
-    } catch (error) {
-      console.error('Error fetching conversations:', error);
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUserId]);
-
-  useEffect(() => {
-    fetchConversations();
-  }, [fetchConversations]);
+  // Use React Query for conversations
+  const { data: conversations = [], isLoading } = useConversations(currentUserId);
+  const invalidateConversations = useInvalidateConversations();
 
   // Handle navigation state (starting a conversation from another page)
   useEffect(() => {
@@ -123,7 +52,6 @@ export const Messages: React.FC = () => {
       // Case 1: Direct conversation ID passed
       if (state.conversationId) {
         setSelectedChatId(state.conversationId);
-        // Clear the state to prevent re-triggering
         navigate(location.pathname, { replace: true, state: null });
         return;
       }
@@ -137,18 +65,16 @@ export const Messages: React.FC = () => {
         );
         
         if (convId) {
-          // Refresh conversations list to include the new one
-          await fetchConversations();
+          invalidateConversations();
           setSelectedChatId(convId);
         }
         
-        // Clear the state to prevent re-triggering
         navigate(location.pathname, { replace: true, state: null });
       }
     };
     
     handleNavigationState();
-  }, [location.state, currentUserId, navigate, fetchConversations]);
+  }, [location.state, currentUserId, navigate, invalidateConversations]);
 
   // Mark messages as read
   const markMessagesAsRead = async (conversationId: string) => {
@@ -181,7 +107,6 @@ export const Messages: React.FC = () => {
         if (error) throw error;
         setMessages(data || []);
         
-        // Mark messages as read when conversation is opened
         markMessagesAsRead(selectedChatId);
       } catch (error) {
         console.error('Error fetching messages:', error);
@@ -205,7 +130,6 @@ export const Messages: React.FC = () => {
           const newMessage = payload.new as Message;
           setMessages(prev => [...prev, newMessage]);
           
-          // Mark the new message as read if it's from someone else
           if (newMessage.sender_id !== currentUserId) {
             markMessagesAsRead(selectedChatId);
           }
@@ -240,9 +164,9 @@ export const Messages: React.FC = () => {
     }
   };
 
-  const activeChat = conversations.find(c => c.id === selectedChatId);
+  const activeChat = conversations.find((c: ConversationWithDetails) => c.id === selectedChatId);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="h-[calc(100vh-64px)] flex items-center justify-center bg-offWhite">
         <p className="text-gray-500">Loading conversations...</p>
@@ -264,7 +188,7 @@ export const Messages: React.FC = () => {
               <p className="text-sm text-gray-400">Start messaging by making or accepting offers</p>
             </div>
           ) : (
-            conversations.map((chat) => (
+            conversations.map((chat: ConversationWithDetails) => (
               <div 
                 key={chat.id} 
                 onClick={() => setSelectedChatId(chat.id)}
@@ -302,30 +226,9 @@ export const Messages: React.FC = () => {
               </div>
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-              {messages.length === 0 ? (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-gray-400">No messages yet. Start the conversation!</p>
-                </div>
-              ) : (
-                messages.map((msg) => {
-                  const isOwnMessage = msg.sender_id === currentUserId;
-                  const timestamp = new Date(msg.created_at).toLocaleTimeString('en-US', { 
-                    hour: 'numeric', 
-                    minute: '2-digit' 
-                  });
-
-                  return (
-                    <div key={msg.id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[75%] rounded-2xl px-4 py-3 shadow-sm ${isOwnMessage ? 'bg-softTeal text-white rounded-tr-none' : 'bg-white text-gray-800 rounded-tl-none'}`}>
-                        <p className="text-sm">{msg.content}</p>
-                        <p className={`text-[10px] mt-1 text-right ${isOwnMessage ? 'text-blue-100' : 'text-gray-400'}`}>{timestamp}</p>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
+            {/* Virtualized Messages */}
+            <div className="flex-1 bg-gray-50">
+              <VirtualizedMessages messages={messages} currentUserId={currentUserId} />
             </div>
 
             {/* Input */}
