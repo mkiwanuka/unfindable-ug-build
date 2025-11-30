@@ -10,9 +10,10 @@ import { ReportModal } from '../components/ReportModal';
 interface RequestDetailsProps {
   requests: Request[];
   currentUser: User | null;
+  onOfferChange?: () => void;
 }
 
-export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, currentUser }) => {
+export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, currentUser, onOfferChange }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const request = requests.find(r => r.id === id);
@@ -113,8 +114,9 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
           });
         }
         
-        // Refresh offers list
+        // Refresh offers list and trigger parent refresh for offer count
         await fetchOffers();
+        onOfferChange?.();
         
         setOfferSent(true);
         setOfferPrice('');
@@ -131,8 +133,9 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
       // Update the specific offer to accepted
       await api.offers.update(offerId, { status: 'Accepted' });
       
-      // Refresh offers list
+      // Refresh offers list and trigger parent refresh
       await fetchOffers();
+      onOfferChange?.();
       
       // Update request status to In Progress
       setLocalStatus('In Progress');
@@ -147,8 +150,9 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
       // Ensure the specific offer is accepted
       await api.offers.update(offerId, { status: 'Accepted' });
       
-      // Refresh offers list
+      // Refresh offers list and trigger parent refresh
       await fetchOffers();
+      onOfferChange?.();
       
       // Update request status to Completed
       setLocalStatus('Completed');
