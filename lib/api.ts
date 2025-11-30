@@ -317,6 +317,15 @@ export const api = {
         createdAt: data.created_at,
       };
     },
+
+    async updateStatus(requestId: string, status: 'Open' | 'In Progress' | 'Completed'): Promise<void> {
+      const { error } = await supabase
+        .from('requests')
+        .update({ status })
+        .eq('id', requestId);
+
+      if (error) throw error;
+    },
   },
 
   offers: {
