@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Check, CheckCheck } from 'lucide-react';
 import { MessageReactions } from './MessageReactions';
+import { FileAttachment } from './FileAttachment';
 
 interface Message {
   id: string;
@@ -8,6 +9,9 @@ interface Message {
   content: string;
   created_at: string;
   read_at?: string | null;
+  attachment_url?: string | null;
+  attachment_type?: string | null;
+  attachment_name?: string | null;
 }
 
 interface Reaction {
@@ -71,7 +75,17 @@ export const VirtualizedMessages: React.FC<VirtualizedMessagesProps> = ({
                 ? 'bg-softTeal text-white rounded-2xl rounded-br-sm' 
                 : 'bg-white text-gray-800 rounded-2xl rounded-bl-sm'
             }`}>
-              <p className="text-sm leading-relaxed break-words">{msg.content}</p>
+              {msg.attachment_url && msg.attachment_type && msg.attachment_name && (
+                <FileAttachment
+                  url={msg.attachment_url}
+                  type={msg.attachment_type}
+                  name={msg.attachment_name}
+                  isOwnMessage={isOwnMessage}
+                />
+              )}
+              {msg.content && (
+                <p className="text-sm leading-relaxed break-words">{msg.content}</p>
+              )}
               <div className={`flex items-center justify-end gap-1 mt-1 ${
                 isOwnMessage ? 'text-white/70' : 'text-gray-400'
               }`}>

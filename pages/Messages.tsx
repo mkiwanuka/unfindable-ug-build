@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Send, Paperclip, ArrowLeft, MessageSquare, Search } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Send, Paperclip, ArrowLeft, MessageSquare, Search, X, Loader2 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../src/integrations/supabase/client';
 import { getOrCreateConversation } from '../lib/conversationUtils';
@@ -10,6 +10,7 @@ import { messageSchema } from '../lib/schemas';
 import { useTypingIndicator } from '../hooks/useTypingIndicator';
 import { TypingIndicator } from '../components/TypingIndicator';
 import { useMessageReactions } from '../hooks/useMessageReactions';
+import { useFileUpload } from '../hooks/useFileUpload';
 
 interface Message {
   id: string;
@@ -17,6 +18,9 @@ interface Message {
   content: string;
   created_at: string;
   read_at?: string | null;
+  attachment_url?: string | null;
+  attachment_type?: string | null;
+  attachment_name?: string | null;
 }
 
 interface LocationState {
@@ -51,6 +55,11 @@ export const Messages: React.FC = () => {
   const [currentUserName, setCurrentUserName] = useState<string | null>(null);
   const [showChatOnMobile, setShowChatOnMobile] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // File upload hook
+  const { uploadFile, isUploading, uploadError, clearError } = useFileUpload(currentUserId);
 
   // Get current user
   useEffect(() => {
@@ -216,21 +225,32 @@ export const Messages: React.FC = () => {
 
   // Send message with optimistic update
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedChatId || !currentUserId) return;
+    if ((!newMessage.trim() && !selectedFile) || !selectedChatId || !currentUserId) return;
 
-    // Validate message
-    const validation = messageSchema.safeParse({
-      conversationId: selectedChatId,
-      content: newMessage.trim(),
-    });
+    // Validate message if there's text
+    if (newMessage.trim()) {
+      const validation = messageSchema.safeParse({
+        conversationId: selectedChatId,
+        content: newMessage.trim(),
+      });
 
-    if (!validation.success) {
-      alert(validation.error.issues[0]?.message || 'Invalid message');
-      return;
+      if (!validation.success) {
+        alert(validation.error.issues[0]?.message || 'Invalid message');
+        return;
+      }
     }
 
-    const messageContent = validation.data.content;
+    const messageContent = newMessage.trim();
     const tempId = `temp-${Date.now()}`;
+    
+    // Upload file if selected
+    let attachment: { url: string; type: string; name: string } | null = null;
+    if (selectedFile) {
+      attachment = await uploadFile(selectedFile);
+      if (!attachment && !messageContent) {
+        return; // Failed to upload and no text content
+      }
+    }
     
     // Optimistic update - add message immediately
     const optimisticMessage: Message = {
@@ -238,10 +258,14 @@ export const Messages: React.FC = () => {
       sender_id: currentUserId,
       content: messageContent,
       created_at: new Date().toISOString(),
+      attachment_url: attachment?.url || null,
+      attachment_type: attachment?.type || null,
+      attachment_name: attachment?.name || null,
     };
     
     setMessages(prev => [...prev, optimisticMessage]);
     setNewMessage('');
+    setSelectedFile(null);
     stopTyping();
 
     try {
@@ -250,7 +274,10 @@ export const Messages: React.FC = () => {
         .insert({
           conversation_id: selectedChatId,
           sender_id: currentUserId,
-          content: messageContent
+          content: messageContent || null,
+          attachment_url: attachment?.url || null,
+          attachment_type: attachment?.type || null,
+          attachment_name: attachment?.name || null,
         })
         .select()
         .single();
@@ -268,6 +295,15 @@ export const Messages: React.FC = () => {
       // Remove optimistic message on error
       setMessages(prev => prev.filter(msg => msg.id !== tempId));
       alert('Failed to send message. Please try again.');
+    }
+  };
+
+  // Handle file selection
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      clearError();
     }
   };
 
@@ -398,8 +434,34 @@ export const Messages: React.FC = () => {
 
             {/* Input */}
             <div className="p-3 bg-white border-t border-gray-200">
+              {/* Selected file preview */}
+              {selectedFile && (
+                <div className="flex items-center gap-2 mb-2 p-2 bg-gray-100 rounded-lg">
+                  <span className="text-sm text-gray-600 truncate flex-1">{selectedFile.name}</span>
+                  <button
+                    onClick={() => setSelectedFile(null)}
+                    className="p-1 hover:bg-gray-200 rounded-full transition-colors"
+                  >
+                    <X className="h-4 w-4 text-gray-500" />
+                  </button>
+                </div>
+              )}
+              {uploadError && (
+                <p className="text-red-500 text-xs mb-2">{uploadError}</p>
+              )}
               <div className="flex items-center space-x-2 bg-gray-100 rounded-full px-3 py-2">
-                <button className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={handleFileSelect}
+                  accept="image/*,.pdf,.doc,.docx,.txt"
+                />
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                  disabled={isUploading}
+                >
                   <Paperclip className="h-5 w-5" />
                 </button>
                 <input 
@@ -411,15 +473,19 @@ export const Messages: React.FC = () => {
                     setNewMessage(e.target.value);
                     handleTypingStart();
                   }}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  onKeyPress={(e) => e.key === 'Enter' && !isUploading && handleSendMessage()}
                 />
                 <button 
                   onClick={handleSendMessage}
                   className="p-2 bg-softTeal text-white rounded-full hover:bg-opacity-90 disabled:opacity-50 transition-all"
-                  disabled={!newMessage.trim()}
+                  disabled={(!newMessage.trim() && !selectedFile) || isUploading}
                   aria-label="Send message"
                 >
-                  <Send className="h-4 w-4" />
+                  {isUploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </div>
