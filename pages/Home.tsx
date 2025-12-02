@@ -30,10 +30,10 @@ export const Home: React.FC<HomeProps> = ({ featuredRequests }) => {
       <section className="bg-deepBlue relative overflow-hidden">
         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32 relative z-10 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
             Find the <span className="text-softTeal">Unfindable</span>
           </h1>
-          <p className="text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg md:text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
             Stop searching endlessly. Just post it. We'll find it for you.
           </p>
           <div className="max-w-3xl mx-auto relative">
@@ -61,7 +61,7 @@ export const Home: React.FC<HomeProps> = ({ featuredRequests }) => {
       <section className="py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-deepBlue">Browse Categories</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-deepBlue">Browse Categories</h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
             {[
@@ -96,7 +96,7 @@ export const Home: React.FC<HomeProps> = ({ featuredRequests }) => {
       <section className="py-16 bg-offWhite">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold text-deepBlue">Featured Requests</h2>
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-deepBlue">Featured Requests</h2>
             <Link to="/search" className="text-softTeal font-semibold flex items-center hover:underline">
               View All <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
@@ -163,27 +163,27 @@ export const Home: React.FC<HomeProps> = ({ featuredRequests }) => {
       {/* How It Works */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-deepBlue mb-12">How It Works</h2>
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-deepBlue mb-12">How It Works</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             <div className="flex flex-col items-center">
               <div className="bg-blue-50 p-6 rounded-full mb-6">
                 <Search className="h-10 w-10 text-softTeal" />
               </div>
-              <h3 className="text-xl font-bold mb-2">1. Post a Request</h3>
+              <h3 className="text-lg sm:text-xl font-bold mb-2">1. Post a Request</h3>
               <p className="text-gray-500">Describe exactly what you need, set your budget, and add photos.</p>
             </div>
             <div className="flex flex-col items-center">
               <div className="bg-blue-50 p-6 rounded-full mb-6">
                 <Package className="h-10 w-10 text-softTeal" />
               </div>
-              <h3 className="text-xl font-bold mb-2">2. Receive Offers</h3>
+              <h3 className="text-lg sm:text-xl font-bold mb-2">2. Receive Offers</h3>
               <p className="text-gray-500">Finders from around the world submit offers with prices and delivery times.</p>
             </div>
             <div className="flex flex-col items-center">
               <div className="bg-blue-50 p-6 rounded-full mb-6">
                 <CheckCircle className="h-10 w-10 text-softTeal" />
               </div>
-              <h3 className="text-xl font-bold mb-2">3. Choose & Relax</h3>
+              <h3 className="text-lg sm:text-xl font-bold mb-2">3. Choose & Relax</h3>
               <p className="text-gray-500">Accept the best offer, pay securely, and wait for your item to arrive.</p>
             </div>
           </div>

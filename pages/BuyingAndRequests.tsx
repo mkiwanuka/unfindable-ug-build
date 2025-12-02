@@ -8,8 +8,8 @@ export const BuyingAndRequests: React.FC = () => {
     <div className="min-h-screen bg-offWhite py-12">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-deepBlue mb-4">Buying & Requests</h1>
-          <p className="text-xl text-gray-600">A complete guide to posting requests and buying items on Unfindable.</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-deepBlue mb-4">Buying & Requests</h1>
+          <p className="text-base sm:text-lg md:text-xl text-gray-600">A complete guide to posting requests and buying items on Unfindable.</p>
         </div>
 
         <div className="space-y-8">
@@ -20,7 +20,7 @@ export const BuyingAndRequests: React.FC = () => {
                         <Package className="h-6 w-6 text-softTeal" />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold text-deepBlue mb-4">Posting a Request</h2>
+                        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-deepBlue mb-4">Posting a Request</h2>
                         <p className="text-gray-600 mb-4">
                             The first step to finding what you need is creating a detailed request.
                         </p>
@@ -41,7 +41,7 @@ export const BuyingAndRequests: React.FC = () => {
                         <Search className="h-6 w-6 text-softTeal" />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold text-deepBlue mb-4">Evaluating Offers</h2>
+                        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-deepBlue mb-4">Evaluating Offers</h2>
                         <p className="text-gray-600 mb-4">
                             Once your request is live, Finders will submit offers. Here is how to choose the best one.
                         </p>
@@ -61,7 +61,7 @@ export const BuyingAndRequests: React.FC = () => {
                         <ShieldCheck className="h-6 w-6 text-softTeal" />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold text-deepBlue mb-4">Payment & Safety</h2>
+                        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-deepBlue mb-4">Payment & Safety</h2>
                         <p className="text-gray-600 mb-4">
                             Your safety is our priority. Learn how transactions are protected.
                         </p>
@@ -75,7 +75,7 @@ export const BuyingAndRequests: React.FC = () => {
         </div>
 
         <div className="mt-12 text-center bg-blue-50 rounded-xl p-8">
-            <h3 className="text-xl font-bold text-deepBlue mb-2">Ready to find something?</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-deepBlue mb-2">Ready to find something?</h3>
             <p className="text-gray-600 mb-6">Join thousands of people finding the unfindable.</p>
             <Link to="/post-request" className="bg-deepBlue text-white px-8 py-3 rounded-lg font-bold hover:bg-opacity-90 transition-colors">
                 Post a Request

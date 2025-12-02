@@ -8,15 +8,15 @@ export const GettingStarted: React.FC = () => {
     <div className="min-h-screen bg-offWhite py-12">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-deepBlue mb-4">Getting Started with Unfindable</h1>
-          <p className="text-xl text-gray-600">Everything you need to know to start requesting and finding items.</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-deepBlue mb-4">Getting Started with Unfindable</h1>
+          <p className="text-base sm:text-lg md:text-xl text-gray-600">Everything you need to know to start requesting and finding items.</p>
         </div>
 
         {/* For Requesters */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-8">
           <div className="bg-deepBlue p-6 text-white">
-            <h2 className="text-2xl font-bold flex items-center">
-              <Package className="mr-3 h-6 w-6 text-softTeal" /> For Requesters
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold flex items-center">
+              <Package className="mr-3 h-5 w-5 sm:h-6 sm:w-6 text-softTeal" /> For Requesters
             </h2>
             <p className="text-blue-200 mt-1">How to find what you're looking for.</p>
           </div>
@@ -51,8 +51,8 @@ export const GettingStarted: React.FC = () => {
         {/* For Finders */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="bg-softTeal p-6 text-white">
-            <h2 className="text-2xl font-bold flex items-center">
-              <Search className="mr-3 h-6 w-6 text-deepBlue" /> For Finders
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold flex items-center">
+              <Search className="mr-3 h-5 w-5 sm:h-6 sm:w-6 text-deepBlue" /> For Finders
             </h2>
             <p className="text-blue-50 mt-1">How to earn money finding items.</p>
           </div>

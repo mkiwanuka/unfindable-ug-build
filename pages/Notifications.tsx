@@ -153,7 +153,7 @@ export const Notifications: React.FC = () => {
     <div className="min-h-screen bg-offWhite py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-deepBlue flex items-center">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-deepBlue flex items-center">
             <Bell className="mr-3 h-6 w-6" /> Notifications
             {unreadCount > 0 && (
               <span className="ml-3 bg-red-500 text-white text-sm rounded-full px-2.5 py-0.5">

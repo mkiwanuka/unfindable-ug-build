@@ -8,8 +8,8 @@ export const Payments: React.FC = () => {
     <div className="min-h-screen bg-offWhite py-12">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-deepBlue mb-4">Payments</h1>
-          <p className="text-xl text-gray-600">Everything you need to know about transactions on Unfindable.</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-deepBlue mb-4">Payments</h1>
+          <p className="text-base sm:text-lg md:text-xl text-gray-600">Everything you need to know about transactions on Unfindable.</p>
         </div>
 
         <div className="space-y-8">
@@ -20,7 +20,7 @@ export const Payments: React.FC = () => {
                         <Smartphone className="h-6 w-6 text-softTeal" />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold text-deepBlue mb-4">Payment Methods</h2>
+                        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-deepBlue mb-4">Payment Methods</h2>
                         <p className="text-gray-600 mb-4">
                             We support a variety of secure payment options popular in Uganda for your convenience.
                         </p>
@@ -40,7 +40,7 @@ export const Payments: React.FC = () => {
                         <ShieldCheck className="h-6 w-6 text-softTeal" />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold text-deepBlue mb-4">Escrow Protection</h2>
+                        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-deepBlue mb-4">Escrow Protection</h2>
                         <p className="text-gray-600 mb-4">
                             To ensure safety for both buyers and sellers, we use an escrow system.
                         </p>
@@ -60,7 +60,7 @@ export const Payments: React.FC = () => {
                         <DollarSign className="h-6 w-6 text-softTeal" />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold text-deepBlue mb-4">Payouts & Withdrawals</h2>
+                        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-deepBlue mb-4">Payouts & Withdrawals</h2>
                         <p className="text-gray-600 mb-4">
                             For Finders, accessing your earnings is simple and fast.
                         </p>

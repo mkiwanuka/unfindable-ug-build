@@ -176,7 +176,7 @@ export const PostRequest: React.FC<PostRequestProps> = ({ currentUser, onPostSuc
 
   const renderStep1 = () => (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-deepBlue text-center">What do you want us to find for you?</h2>
+      <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-deepBlue text-center">What do you want us to find for you?</h2>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {CATEGORIES.map((cat) => (
           <button
@@ -210,7 +210,7 @@ export const PostRequest: React.FC<PostRequestProps> = ({ currentUser, onPostSuc
 
   const renderStep2 = () => (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-deepBlue">Item Details</h2>
+      <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-deepBlue">Item Details</h2>
       
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Title <span className="text-red-500">*</span></label>
@@ -301,7 +301,7 @@ export const PostRequest: React.FC<PostRequestProps> = ({ currentUser, onPostSuc
 
   const renderStep3 = () => (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-deepBlue">Specifications</h2>
+      <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-deepBlue">Specifications</h2>
       <p className="text-gray-500 text-sm">Add specific details for {formData.category}</p>
 
       {formData.category === 'Electronics & Gadgets' ? (
@@ -344,7 +344,7 @@ export const PostRequest: React.FC<PostRequestProps> = ({ currentUser, onPostSuc
 
   const renderStep4 = () => (
     <div className="space-y-8">
-      <h2 className="text-2xl font-bold text-deepBlue">Budget</h2>
+      <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-deepBlue">Budget</h2>
       
       <div className="flex space-x-4 bg-[#F3F4F6] p-1 rounded-lg w-fit">
           <button 

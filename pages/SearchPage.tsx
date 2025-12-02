@@ -268,7 +268,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({ requests }) => {
                 <div className="flex-1">
                     <div className="mb-6 flex justify-between items-end">
                         <div>
-                            <h1 className="text-2xl font-bold text-deepBlue">
+                            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-deepBlue">
                                 {queryParam ? `Results for "${queryParam}"` : 'All Requests'}
                                 {categoryParam && <span className="font-normal text-gray-500"> in {categoryParam}</span>}
                             </h1>

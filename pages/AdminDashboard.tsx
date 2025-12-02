@@ -150,7 +150,7 @@ export const AdminDashboard: React.FC = () => {
       <div className="flex-1 overflow-y-auto h-screen">
          <div className="p-8">
             <div className="flex justify-between items-center mb-8">
-                <h1 className="text-2xl font-bold text-foreground capitalize">{activeTab}</h1>
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground capitalize">{activeTab}</h1>
                 <div className="flex items-center space-x-4">
                    <button 
                      onClick={() => navigate('/')}

@@ -24,7 +24,7 @@ const ProfileReviews: React.FC<{ userId: string }> = ({ userId }) => {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-deepBlue">Reviews</h2>
+        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-deepBlue">Reviews</h2>
         {averageRating !== null && (
           <div className="flex items-center">
             <Star className="h-5 w-5 text-yellow-400 fill-current mr-1" />
@@ -165,7 +165,7 @@ export const Profile: React.FC = () => {
                         <img src={profileUser.avatar} alt={profileUser.name} className="h-32 w-32 rounded-full border-4 border-white shadow-md object-cover" />
                         <div className="md:ml-6 mt-4 md:mt-0 flex-1">
                             <div className="flex items-center">
-                                <h1 className="text-3xl font-bold text-deepBlue mr-3">{profileUser.name}</h1>
+                                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-deepBlue mr-3">{profileUser.name}</h1>
                                 {profileUser.verified && <Shield className="h-5 w-5 text-softTeal fill-current" />}
                             </div>
                             <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-600">

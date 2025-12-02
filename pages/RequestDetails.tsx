@@ -290,7 +290,7 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
                             </span>
                             <span className="text-gray-500 text-sm flex items-center ml-2"><Clock className="h-3 w-3 mr-1" /> Posted {formatRelativeDate(request.createdAt)}</span>
                         </div>
-                        <h1 className="text-3xl font-bold text-gray-900">{request.title}</h1>
+                        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">{request.title}</h1>
                     </div>
                     <div className="flex space-x-3">
                         <button 
@@ -328,7 +328,7 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
 
                 {/* Description & Specs */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h2 className="text-xl font-bold text-deepBlue mb-4">Details</h2>
+                    <h2 className="text-lg sm:text-xl font-bold text-deepBlue mb-4">Details</h2>
                     <p className="text-gray-700 leading-relaxed whitespace-pre-line mb-8">
                         {request.description}
                     </p>
@@ -366,7 +366,7 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
 
                 {/* Offers List */}
                 <div>
-                    <h3 className="text-xl font-bold text-deepBlue mb-4">Current Offers ({offers.length})</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-deepBlue mb-4">Current Offers ({offers.length})</h3>
                     <div className="space-y-4">
                         {offers.map((offer) => (
                             <div key={offer.id} className={`bg-white p-6 rounded-xl shadow-sm border flex flex-col md:flex-row gap-4 transition-all ${editingOfferId === offer.id ? 'border-softTeal ring-1 ring-softTeal bg-blue-50/30' : 'border-gray-200'}`}>
