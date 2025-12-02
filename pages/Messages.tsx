@@ -9,6 +9,7 @@ import { realtimeManager } from '../lib/realtimeManager';
 import { messageSchema } from '../lib/schemas';
 import { useTypingIndicator } from '../hooks/useTypingIndicator';
 import { TypingIndicator } from '../components/TypingIndicator';
+import { useMessageReactions } from '../hooks/useMessageReactions';
 
 interface Message {
   id: string;
@@ -77,6 +78,9 @@ export const Messages: React.FC = () => {
     currentUserId,
     currentUserName
   );
+
+  // Message reactions
+  const { reactions, refetchReactions } = useMessageReactions(selectedChatId, currentUserId);
 
   // Use React Query for conversations
   const { data: conversations = [], isLoading } = useConversations(currentUserId);
@@ -381,7 +385,12 @@ export const Messages: React.FC = () => {
 
             {/* Virtualized Messages */}
             <div className="flex-1 bg-gray-50 h-full min-h-0">
-              <VirtualizedMessages messages={messages} currentUserId={currentUserId} />
+              <VirtualizedMessages 
+                messages={messages} 
+                currentUserId={currentUserId}
+                reactions={reactions}
+                onReactionChange={refetchReactions}
+              />
             </div>
 
             {/* Typing Indicator */}
