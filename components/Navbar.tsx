@@ -135,15 +135,15 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout, unreadMessageCou
       {/* Mobile Menu */}
       {isMenuOpen && (
         <div className="md:hidden bg-deepBlue pb-3 px-2 pt-2 sm:px-3 space-y-1">
-          <Link to="/" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700">Home</Link>
-          <Link to="/post-request" className="flex items-center px-3 py-2 rounded-md text-base font-medium bg-softTeal text-white hover:bg-opacity-90 mt-1 mb-1">
+          <Link to="/" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700">Home</Link>
+          <Link to="/post-request" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2 rounded-md text-base font-medium bg-softTeal text-white hover:bg-opacity-90 mt-1 mb-1">
             <PlusCircle className="h-4 w-4 mr-2" />
             Post Request
           </Link>
           {user && (
             <>
-              <Link to="/dashboard" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700">Dashboard</Link>
-              <Link to="/messages" className="flex items-center justify-between px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700">
+              <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700">Dashboard</Link>
+              <Link to="/messages" onClick={() => setIsMenuOpen(false)} className="flex items-center justify-between px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700">
                 Messages
                 {unreadMessageCount > 0 && (
                   <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
@@ -151,7 +151,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout, unreadMessageCou
                   </span>
                 )}
               </Link>
-              <Link to="/notifications" className="flex items-center justify-between px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700">
+              <Link to="/notifications" onClick={() => setIsMenuOpen(false)} className="flex items-center justify-between px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700">
                 Notifications
                 {unreadNotificationCount > 0 && (
                   <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
@@ -159,12 +159,12 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout, unreadMessageCou
                   </span>
                 )}
               </Link>
-              <Link to={`/profile/${user.id}`} className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700">My Profile</Link>
-              <button onClick={onLogout} className="block w-full text-left px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700 text-red-400">Sign out</button>
+              <Link to={`/profile/${user.id}`} onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700">My Profile</Link>
+              <button onClick={() => { onLogout(); setIsMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700 text-red-400">Sign out</button>
             </>
           )}
           {!user && (
-             <Link to="/login" className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700 mt-4 text-center border-t border-gray-700 pt-4">Login / Signup</Link>
+             <Link to="/login" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700 mt-4 text-center border-t border-gray-700 pt-4">Login / Signup</Link>
           )}
         </div>
       )}
