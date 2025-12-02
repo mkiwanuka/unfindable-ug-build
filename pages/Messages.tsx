@@ -15,6 +15,7 @@ interface Message {
   sender_id: string;
   content: string;
   created_at: string;
+  read_at?: string | null;
 }
 
 interface LocationState {
@@ -163,7 +164,7 @@ export const Messages: React.FC = () => {
     fetchMessages();
 
     // Use consolidated realtime manager for new messages
-    const unsub = realtimeManager.subscribe('messages', 'INSERT', (payload) => {
+    const unsubInsert = realtimeManager.subscribe('messages', 'INSERT', (payload) => {
       const newMsg = payload.new as Message & { conversation_id: string };
       
       // Only add if it's for the current conversation
@@ -181,8 +182,20 @@ export const Messages: React.FC = () => {
       }
     });
 
+    // Subscribe to message updates (for read receipts)
+    const unsubUpdate = realtimeManager.subscribe('messages', 'UPDATE', (payload) => {
+      const updatedMsg = payload.new as Message & { conversation_id: string };
+      
+      if (updatedMsg.conversation_id === selectedChatId) {
+        setMessages(prev => 
+          prev.map(m => m.id === updatedMsg.id ? { ...m, read_at: updatedMsg.read_at } : m)
+        );
+      }
+    });
+
     return () => {
-      unsub();
+      unsubInsert();
+      unsubUpdate();
     };
   }, [selectedChatId, currentUserId]);
 

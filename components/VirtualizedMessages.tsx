@@ -1,10 +1,12 @@
 import React, { useEffect, useRef } from 'react';
+import { Check, CheckCheck } from 'lucide-react';
 
 interface Message {
   id: string;
   sender_id: string;
   content: string;
   created_at: string;
+  read_at?: string | null;
 }
 
 interface VirtualizedMessagesProps {
@@ -40,6 +42,9 @@ export const VirtualizedMessages: React.FC<VirtualizedMessagesProps> = ({
           minute: '2-digit' 
         });
 
+        const isRead = !!msg.read_at;
+        const isTempMessage = msg.id.startsWith('temp-');
+
         return (
           <div 
             key={msg.id} 
@@ -51,9 +56,18 @@ export const VirtualizedMessages: React.FC<VirtualizedMessagesProps> = ({
                 : 'bg-white text-gray-800 rounded-2xl rounded-bl-sm'
             }`}>
               <p className="text-sm leading-relaxed break-words">{msg.content}</p>
-              <p className={`text-[10px] mt-1 text-right ${
+              <div className={`flex items-center justify-end gap-1 mt-1 ${
                 isOwnMessage ? 'text-white/70' : 'text-gray-400'
-              }`}>{timestamp}</p>
+              }`}>
+                <span className="text-[10px]">{timestamp}</span>
+                {isOwnMessage && !isTempMessage && (
+                  isRead ? (
+                    <CheckCheck className="h-3.5 w-3.5 text-blue-300" />
+                  ) : (
+                    <Check className="h-3.5 w-3.5" />
+                  )
+                )}
+              </div>
             </div>
           </div>
         );
