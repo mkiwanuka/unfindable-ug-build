@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Check, CheckCheck } from 'lucide-react';
+import { MessageReactions } from './MessageReactions';
 
 interface Message {
   id: string;
@@ -9,14 +10,28 @@ interface Message {
   read_at?: string | null;
 }
 
+interface Reaction {
+  emoji: string;
+  count: number;
+  userReacted: boolean;
+}
+
+interface MessageReactionsMap {
+  [messageId: string]: Reaction[];
+}
+
 interface VirtualizedMessagesProps {
   messages: Message[];
   currentUserId: string | null;
+  reactions?: MessageReactionsMap;
+  onReactionChange?: () => void;
 }
 
 export const VirtualizedMessages: React.FC<VirtualizedMessagesProps> = ({ 
   messages, 
-  currentUserId 
+  currentUserId,
+  reactions = {},
+  onReactionChange
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -44,11 +59,12 @@ export const VirtualizedMessages: React.FC<VirtualizedMessagesProps> = ({
 
         const isRead = !!msg.read_at;
         const isTempMessage = msg.id.startsWith('temp-');
+        const messageReactions = reactions[msg.id] || [];
 
         return (
           <div 
             key={msg.id} 
-            className={`flex py-1 ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
+            className={`flex flex-col py-1 ${isOwnMessage ? 'items-end' : 'items-start'}`}
           >
             <div className={`max-w-[80%] sm:max-w-[75%] px-4 py-2.5 shadow-sm ${
               isOwnMessage 
@@ -69,6 +85,15 @@ export const VirtualizedMessages: React.FC<VirtualizedMessagesProps> = ({
                 )}
               </div>
             </div>
+            {!isTempMessage && (
+              <MessageReactions
+                messageId={msg.id}
+                reactions={messageReactions}
+                currentUserId={currentUserId}
+                isOwnMessage={isOwnMessage}
+                onReactionChange={onReactionChange || (() => {})}
+              />
+            )}
           </div>
         );
       })}
