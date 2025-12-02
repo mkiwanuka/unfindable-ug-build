@@ -68,12 +68,10 @@ const AppContent: React.FC = () => {
   
   const requests = requestsData?.data ?? [];
 
-  // Initialize realtime manager once on mount
+  // Initialize realtime manager once on mount (singleton persists for app lifetime)
   useEffect(() => {
     realtimeManager.init();
-    return () => {
-      realtimeManager.cleanup();
-    };
+    // Don't cleanup on unmount - singleton should persist and cleanup is protected
   }, []);
 
   // Initial Load: Check Session

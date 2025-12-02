@@ -17,7 +17,12 @@ class RealtimeManager {
   private initialized = false;
 
   init() {
-    if (this.initialized) return;
+    // If already initialized with an active channel, don't reinitialize
+    if (this.initialized && this.channel) {
+      console.log('[RealtimeManager] Already initialized, skipping');
+      return;
+    }
+    
     this.initialized = true;
 
     console.log('[RealtimeManager] Initializing global channel');
@@ -81,9 +86,25 @@ class RealtimeManager {
     };
   }
 
+  // Only cleanup if there are no active subscriptions (prevents StrictMode issues)
   cleanup() {
+    if (this.subscriptions.size > 0) {
+      console.log('[RealtimeManager] Skipping cleanup - active subscriptions:', this.subscriptions.size);
+      return;
+    }
+    
     if (this.channel) {
       console.log('[RealtimeManager] Cleaning up global channel');
+      supabase.removeChannel(this.channel);
+      this.channel = null;
+      this.initialized = false;
+    }
+  }
+
+  // Force cleanup - only use when app is truly unmounting
+  forceCleanup() {
+    if (this.channel) {
+      console.log('[RealtimeManager] Force cleaning up global channel');
       supabase.removeChannel(this.channel);
       this.channel = null;
       this.initialized = false;
