@@ -37,11 +37,16 @@ export const VirtualizedMessages: React.FC<VirtualizedMessagesProps> = ({
   reactions = {},
   onReactionChange
 }) => {
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive - scroll only the container, not the whole page
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (containerRef.current) {
+      containerRef.current.scrollTo({
+        top: containerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
   }, [messages.length]);
 
   if (messages.length === 0) {
@@ -53,7 +58,7 @@ export const VirtualizedMessages: React.FC<VirtualizedMessagesProps> = ({
   }
 
   return (
-    <div className="h-full w-full overflow-y-auto px-3 sm:px-4 py-2">
+    <div ref={containerRef} className="h-full w-full overflow-y-auto px-3 sm:px-4 py-2">
       {messages.map((msg) => {
         const isOwnMessage = msg.sender_id === currentUserId;
         const timestamp = new Date(msg.created_at).toLocaleTimeString('en-US', { 
@@ -111,7 +116,6 @@ export const VirtualizedMessages: React.FC<VirtualizedMessagesProps> = ({
           </div>
         );
       })}
-      <div ref={messagesEndRef} />
     </div>
   );
 };
