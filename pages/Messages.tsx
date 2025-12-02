@@ -158,6 +158,7 @@ export const Messages: React.FC = () => {
     if (!selectedChatId) return;
 
     const fetchMessages = async () => {
+      console.log('[Messages] Fetching messages for conversation:', selectedChatId);
       try {
         const { data, error } = await supabase
           .from('messages')
@@ -166,6 +167,7 @@ export const Messages: React.FC = () => {
           .order('created_at', { ascending: true });
 
         if (error) throw error;
+        console.log('[Messages] Fetched', data?.length || 0, 'messages');
         setMessages(data || []);
         
         markMessagesAsRead(selectedChatId);
@@ -178,14 +180,20 @@ export const Messages: React.FC = () => {
 
     // Use consolidated realtime manager for new messages
     const unsubInsert = realtimeManager.subscribe('messages', 'INSERT', (payload) => {
+      console.log('[Messages] Received INSERT event:', payload);
       const newMsg = payload.new as Message & { conversation_id: string };
+      console.log('[Messages] New msg conversation_id:', newMsg.conversation_id, 'Selected:', selectedChatId);
       
       // Only add if it's for the current conversation
       if (newMsg.conversation_id === selectedChatId) {
+        console.log('[Messages] Adding message to state');
         // Only add if not already present (avoid duplicates from optimistic updates)
         setMessages(prev => {
           const exists = prev.some(m => m.id === newMsg.id);
-          if (exists) return prev;
+          if (exists) {
+            console.log('[Messages] Message already exists, skipping');
+            return prev;
+          }
           return [...prev, newMsg];
         });
         
@@ -197,6 +205,7 @@ export const Messages: React.FC = () => {
 
     // Subscribe to message updates (for read receipts)
     const unsubUpdate = realtimeManager.subscribe('messages', 'UPDATE', (payload) => {
+      console.log('[Messages] Received UPDATE event:', payload);
       const updatedMsg = payload.new as Message & { conversation_id: string };
       
       if (updatedMsg.conversation_id === selectedChatId) {
@@ -204,6 +213,12 @@ export const Messages: React.FC = () => {
           prev.map(m => m.id === updatedMsg.id ? { ...m, read_at: updatedMsg.read_at } : m)
         );
       }
+    });
+
+    // Refetch messages when channel becomes ready (catches missed messages during connection)
+    realtimeManager.onReady(() => {
+      console.log('[Messages] Channel became ready, refetching to catch any missed messages');
+      fetchMessages();
     });
 
     return () => {
