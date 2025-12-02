@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Send, Paperclip, MoreVertical } from 'lucide-react';
+import { Send, Paperclip, ArrowLeft, MessageSquare, Search } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../src/integrations/supabase/client';
 import { getOrCreateConversation } from '../lib/conversationUtils';
@@ -21,6 +21,22 @@ interface LocationState {
   requestId?: string;
 }
 
+// Helper to format relative time
+const getRelativeTime = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+};
+
 export const Messages: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -28,6 +44,8 @@ export const Messages: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [showChatOnMobile, setShowChatOnMobile] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Get current user
   useEffect(() => {
@@ -44,6 +62,12 @@ export const Messages: React.FC = () => {
   const { data: conversations = [], isLoading } = useConversations(currentUserId);
   const invalidateConversations = useInvalidateConversations();
 
+  // Filter conversations by search query
+  const filteredConversations = conversations.filter((chat: ConversationWithDetails) =>
+    chat.partner.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    chat.requestTitle.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   // Handle navigation state (starting a conversation from another page)
   useEffect(() => {
     const handleNavigationState = async () => {
@@ -54,6 +78,7 @@ export const Messages: React.FC = () => {
       // Case 1: Direct conversation ID passed
       if (state.conversationId) {
         setSelectedChatId(state.conversationId);
+        setShowChatOnMobile(true); // Auto-show chat on mobile
         navigate(location.pathname, { replace: true, state: null });
         return;
       }
@@ -69,6 +94,7 @@ export const Messages: React.FC = () => {
         if (convId) {
           invalidateConversations();
           setSelectedChatId(convId);
+          setShowChatOnMobile(true); // Auto-show chat on mobile
         }
         
         navigate(location.pathname, { replace: true, state: null });
@@ -136,6 +162,17 @@ export const Messages: React.FC = () => {
     };
   }, [selectedChatId, currentUserId]);
 
+  // Handle selecting a conversation
+  const handleSelectConversation = (chatId: string) => {
+    setSelectedChatId(chatId);
+    setShowChatOnMobile(true);
+  };
+
+  // Handle back button
+  const handleBackToList = () => {
+    setShowChatOnMobile(false);
+  };
+
   // Send message
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedChatId || !currentUserId) return;
@@ -180,31 +217,69 @@ export const Messages: React.FC = () => {
   }
 
   return (
-    <div className="h-[calc(100vh-64px)] flex flex-col md:flex-row bg-offWhite">
-      {/* Sidebar List */}
-      <div className="w-full md:w-1/3 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-4 border-b border-gray-200">
+    <div className="h-[calc(100vh-64px)] flex overflow-hidden bg-offWhite">
+      {/* Panel A - Conversation List */}
+      <div className={`w-full md:w-1/3 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 ${
+        showChatOnMobile ? 'hidden md:flex' : 'flex'
+      }`}>
+        {/* Header */}
+        <div className="p-4 border-b border-gray-200 flex items-center gap-2">
+          <MessageSquare className="h-5 w-5 text-softTeal" />
           <h2 className="text-lg sm:text-xl font-bold text-deepBlue">Messages</h2>
         </div>
+
+        {/* Search */}
+        <div className="p-3 border-b border-gray-100">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input 
+              type="text"
+              placeholder="Search conversations..."
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-softTeal/50 transition-all"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Conversation List */}
         <div className="flex-1 overflow-y-auto">
-          {conversations.length === 0 ? (
+          {filteredConversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-              <p className="text-gray-500 mb-2">No conversations yet</p>
-              <p className="text-sm text-gray-400">Start messaging by making or accepting offers</p>
+              {searchQuery ? (
+                <>
+                  <Search className="h-10 w-10 text-gray-300 mb-3" />
+                  <p className="text-gray-500 mb-1">No conversations found</p>
+                  <p className="text-sm text-gray-400">Try a different search term</p>
+                </>
+              ) : (
+                <>
+                  <MessageSquare className="h-10 w-10 text-gray-300 mb-3" />
+                  <p className="text-gray-500 mb-1">No conversations yet</p>
+                  <p className="text-sm text-gray-400">Start messaging by making or accepting offers</p>
+                </>
+              )}
             </div>
           ) : (
-            conversations.map((chat: ConversationWithDetails) => (
+            filteredConversations.map((chat: ConversationWithDetails) => (
               <div 
                 key={chat.id} 
-                onClick={() => setSelectedChatId(chat.id)}
-                className={`flex items-center p-4 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100 ${selectedChatId === chat.id ? 'bg-blue-50 border-l-4 border-l-softTeal' : ''}`}
+                onClick={() => handleSelectConversation(chat.id)}
+                className={`flex items-center px-4 py-4 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors border-b border-gray-100 ${
+                  selectedChatId === chat.id ? 'bg-softTeal/5 border-l-4 border-l-softTeal' : ''
+                }`}
               >
-                <img src={chat.partner.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + chat.partner.id} alt={chat.partner.name} className="h-12 w-12 rounded-full mr-4" />
+                <img 
+                  src={chat.partner.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + chat.partner.id} 
+                  alt={chat.partner.name} 
+                  className="h-12 w-12 rounded-full mr-3 flex-shrink-0" 
+                />
                 <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-baseline">
-                    <h3 className="font-bold text-gray-800 truncate">{chat.partner.name}</h3>
+                  <div className="flex justify-between items-center mb-0.5">
+                    <h3 className="font-semibold text-gray-800 truncate text-[15px]">{chat.partner.name}</h3>
+                    <span className="text-xs text-gray-400 ml-2 flex-shrink-0">{getRelativeTime(chat.updated_at)}</span>
                   </div>
-                  <p className="text-xs text-softTeal font-medium mb-1">{chat.requestTitle}</p>
+                  <p className="text-xs text-softTeal font-medium truncate mb-0.5">{chat.requestTitle}</p>
                   <p className="text-sm text-gray-500 truncate">{chat.lastMessage}</p>
                 </div>
               </div>
@@ -213,21 +288,33 @@ export const Messages: React.FC = () => {
         </div>
       </div>
 
-      {/* Chat Window */}
-      <div className="flex-1 flex flex-col">
+      {/* Panel B - Chat Window */}
+      <div className={`flex-1 flex flex-col ${
+        showChatOnMobile ? 'flex' : 'hidden md:flex'
+      }`}>
         {activeChat ? (
           <>
-            {/* Header */}
-            <div className="p-4 bg-white border-b border-gray-200 flex justify-between items-center shadow-sm z-10">
-              <div className="flex items-center">
-                <img src={activeChat.partner.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + activeChat.partner.id} className="h-10 w-10 rounded-full mr-3" alt={activeChat.partner.name} />
-                <div>
-                  <h3 className="font-bold text-gray-800">{activeChat.partner.name}</h3>
-                  <p className="text-xs text-gray-500">Regarding: <span className="text-softTeal font-medium">{activeChat.requestTitle}</span></p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <button className="text-gray-400 hover:text-deepBlue"><MoreVertical className="h-5 w-5" /></button>
+            {/* Chat Header */}
+            <div className="p-3 bg-white border-b border-gray-200 flex items-center shadow-sm z-10">
+              {/* Back button - mobile only */}
+              <button 
+                onClick={handleBackToList}
+                className="md:hidden p-2 -ml-1 mr-2 hover:bg-gray-100 active:bg-gray-200 rounded-full transition-colors"
+                aria-label="Back to conversations"
+              >
+                <ArrowLeft className="h-5 w-5 text-gray-600" />
+              </button>
+              
+              <img 
+                src={activeChat.partner.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + activeChat.partner.id} 
+                className="h-10 w-10 rounded-full mr-3 flex-shrink-0" 
+                alt={activeChat.partner.name} 
+              />
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-gray-800 truncate">{activeChat.partner.name}</h3>
+                <p className="text-xs text-gray-500 truncate">
+                  <span className="text-softTeal font-medium">{activeChat.requestTitle}</span>
+                </p>
               </div>
             </div>
 
@@ -237,21 +324,24 @@ export const Messages: React.FC = () => {
             </div>
 
             {/* Input */}
-            <div className="p-4 bg-white border-t border-gray-200">
-              <div className="flex items-center space-x-2 bg-gray-100 rounded-full px-4 py-2">
-                <button className="text-gray-400 hover:text-gray-600"><Paperclip className="h-5 w-5" /></button>
+            <div className="p-3 bg-white border-t border-gray-200">
+              <div className="flex items-center space-x-2 bg-gray-100 rounded-full px-3 py-2">
+                <button className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
+                  <Paperclip className="h-5 w-5" />
+                </button>
                 <input 
                   type="text" 
                   placeholder="Type a message..." 
-                  className="flex-1 bg-transparent focus:outline-none text-sm"
+                  className="flex-1 bg-transparent focus:outline-none text-sm min-w-0"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                 />
                 <button 
                   onClick={handleSendMessage}
-                  className="p-2 bg-deepBlue text-white rounded-full hover:bg-opacity-90 disabled:opacity-50"
+                  className="p-2 bg-softTeal text-white rounded-full hover:bg-opacity-90 disabled:opacity-50 transition-all"
                   disabled={!newMessage.trim()}
+                  aria-label="Send message"
                 >
                   <Send className="h-4 w-4" />
                 </button>
@@ -259,8 +349,9 @@ export const Messages: React.FC = () => {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center bg-gray-50">
-            <p className="text-gray-400">Select a conversation to start messaging</p>
+          <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 p-8">
+            <MessageSquare className="h-16 w-16 text-gray-200 mb-4" />
+            <p className="text-gray-400 text-center">Select a conversation to start messaging</p>
           </div>
         )}
       </div>
