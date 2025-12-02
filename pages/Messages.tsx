@@ -149,7 +149,12 @@ export const Messages: React.FC = () => {
       
       // Only add if it's for the current conversation
       if (newMsg.conversation_id === selectedChatId) {
-        setMessages(prev => [...prev, newMsg]);
+        // Only add if not already present (avoid duplicates from optimistic updates)
+        setMessages(prev => {
+          const exists = prev.some(m => m.id === newMsg.id);
+          if (exists) return prev;
+          return [...prev, newMsg];
+        });
         
         if (newMsg.sender_id !== currentUserId) {
           markMessagesAsRead(selectedChatId);
@@ -173,7 +178,7 @@ export const Messages: React.FC = () => {
     setShowChatOnMobile(false);
   };
 
-  // Send message
+  // Send message with optimistic update
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedChatId || !currentUserId) return;
 
@@ -188,20 +193,43 @@ export const Messages: React.FC = () => {
       return;
     }
 
+    const messageContent = validation.data.content;
+    const tempId = `temp-${Date.now()}`;
+    
+    // Optimistic update - add message immediately
+    const optimisticMessage: Message = {
+      id: tempId,
+      sender_id: currentUserId,
+      content: messageContent,
+      created_at: new Date().toISOString(),
+    };
+    
+    setMessages(prev => [...prev, optimisticMessage]);
+    setNewMessage('');
+
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('messages')
         .insert({
           conversation_id: selectedChatId,
           sender_id: currentUserId,
-          content: validation.data.content
-        });
+          content: messageContent
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
-      setNewMessage('');
+      // Replace temp message with real one (has real ID)
+      if (data) {
+        setMessages(prev => 
+          prev.map(msg => msg.id === tempId ? data : msg)
+        );
+      }
     } catch (error) {
       console.error('Error sending message:', error);
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(msg => msg.id !== tempId));
       alert('Failed to send message. Please try again.');
     }
   };
@@ -319,7 +347,7 @@ export const Messages: React.FC = () => {
             </div>
 
             {/* Virtualized Messages */}
-            <div className="flex-1 bg-gray-50">
+            <div className="flex-1 bg-gray-50 h-full min-h-0">
               <VirtualizedMessages messages={messages} currentUserId={currentUserId} />
             </div>
 
