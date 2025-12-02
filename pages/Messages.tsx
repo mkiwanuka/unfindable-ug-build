@@ -7,6 +7,8 @@ import { useConversations, useInvalidateConversations, ConversationWithDetails }
 import { VirtualizedMessages } from '../components/VirtualizedMessages';
 import { realtimeManager } from '../lib/realtimeManager';
 import { messageSchema } from '../lib/schemas';
+import { useTypingIndicator } from '../hooks/useTypingIndicator';
+import { TypingIndicator } from '../components/TypingIndicator';
 
 interface Message {
   id: string;
@@ -44,6 +46,7 @@ export const Messages: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserName, setCurrentUserName] = useState<string | null>(null);
   const [showChatOnMobile, setShowChatOnMobile] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -53,10 +56,26 @@ export const Messages: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setCurrentUserId(user.id);
+        // Fetch user name for typing indicator
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', user.id)
+          .single();
+        if (profile) {
+          setCurrentUserName(profile.name);
+        }
       }
     };
     getCurrentUser();
   }, []);
+
+  // Typing indicator
+  const { typingUsers, handleTypingStart, stopTyping } = useTypingIndicator(
+    selectedChatId,
+    currentUserId,
+    currentUserName
+  );
 
   // Use React Query for conversations
   const { data: conversations = [], isLoading } = useConversations(currentUserId);
@@ -206,6 +225,7 @@ export const Messages: React.FC = () => {
     
     setMessages(prev => [...prev, optimisticMessage]);
     setNewMessage('');
+    stopTyping();
 
     try {
       const { data, error } = await supabase
@@ -351,6 +371,9 @@ export const Messages: React.FC = () => {
               <VirtualizedMessages messages={messages} currentUserId={currentUserId} />
             </div>
 
+            {/* Typing Indicator */}
+            <TypingIndicator typingUsers={typingUsers} />
+
             {/* Input */}
             <div className="p-3 bg-white border-t border-gray-200">
               <div className="flex items-center space-x-2 bg-gray-100 rounded-full px-3 py-2">
@@ -362,7 +385,10 @@ export const Messages: React.FC = () => {
                   placeholder="Type a message..." 
                   className="flex-1 bg-transparent focus:outline-none text-sm min-w-0"
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={(e) => {
+                    setNewMessage(e.target.value);
+                    handleTypingStart();
+                  }}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                 />
                 <button 
