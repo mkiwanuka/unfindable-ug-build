@@ -227,6 +227,35 @@ export const Messages: React.FC = () => {
     };
   }, [selectedChatId, currentUserId]);
 
+  // Window focus handler - refetch messages when tab regains focus
+  useEffect(() => {
+    if (!selectedChatId) return;
+
+    const fetchMessages = async () => {
+      console.log('[Messages] Window focused → refetching messages');
+      try {
+        const { data, error } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('conversation_id', selectedChatId)
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+        setMessages(data || []);
+        markMessagesAsRead(selectedChatId);
+      } catch (error) {
+        console.error('Error fetching messages on focus:', error);
+      }
+    };
+
+    const handleFocus = () => {
+      fetchMessages();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [selectedChatId, currentUserId]);
+
   // Handle selecting a conversation
   const handleSelectConversation = (chatId: string) => {
     setSelectedChatId(chatId);

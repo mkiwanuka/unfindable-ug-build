@@ -38,6 +38,12 @@ export function useUnreadNotificationCount(userId: string | null): number {
       }
     });
 
+    // Refetch when channel becomes ready (after reconnect)
+    realtimeManager.onReady(() => {
+      console.log('[Badge] Notification channel ready → refetching unread count');
+      fetchUnreadCount();
+    });
+
     return () => {
       unsubInsert();
       unsubUpdate();

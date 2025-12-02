@@ -56,6 +56,12 @@ export function useUnreadMessageCount(userId: string | null): number {
       fetchUnreadCount();
     });
 
+    // Refetch when channel becomes ready (after reconnect)
+    realtimeManager.onReady(() => {
+      console.log('[Badge] Message channel ready → refetching unread count');
+      fetchUnreadCount();
+    });
+
     return () => {
       unsubInsert();
       unsubUpdate();

@@ -18,6 +18,14 @@ class RealtimeManager {
   private isReady = false;
   private readyCallbacks: (() => void)[] = [];
   private reconnectTimer: number | null = null;
+  
+  // Health check properties
+  public lastEventTime = Date.now();
+  private healthCheckInterval: number | null = null;
+
+  get isInitialized(): boolean {
+    return this.initialized;
+  }
 
   init() {
     // If already initialized with an active channel, don't reinitialize
@@ -36,22 +44,38 @@ class RealtimeManager {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'requests' },
-        (payload) => this.emit('requests', payload)
+        (payload) => {
+          console.log('[RealtimeManager] RAW postgres_changes received for requests:', payload);
+          this.lastEventTime = Date.now();
+          this.emit('requests', payload);
+        }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'messages' },
-        (payload) => this.emit('messages', payload)
+        (payload) => {
+          console.log('[RealtimeManager] RAW postgres_changes received for messages:', payload);
+          this.lastEventTime = Date.now();
+          this.emit('messages', payload);
+        }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'notifications' },
-        (payload) => this.emit('notifications', payload)
+        (payload) => {
+          console.log('[RealtimeManager] RAW postgres_changes received for notifications:', payload);
+          this.lastEventTime = Date.now();
+          this.emit('notifications', payload);
+        }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'offers' },
-        (payload) => this.emit('offers', payload)
+        (payload) => {
+          console.log('[RealtimeManager] RAW postgres_changes received for offers:', payload);
+          this.lastEventTime = Date.now();
+          this.emit('offers', payload);
+        }
       )
       .subscribe((status, err) => {
         console.log('[RealtimeManager] Channel status:', status, err ? err : '');
@@ -59,6 +83,7 @@ class RealtimeManager {
         if (status === 'SUBSCRIBED') {
           console.log('[RealtimeManager] Channel is now ready');
           this.isReady = true;
+          this.lastEventTime = Date.now();
           // Execute all pending ready callbacks
           this.readyCallbacks.forEach(cb => {
             try { 
@@ -71,31 +96,60 @@ class RealtimeManager {
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           console.log('[RealtimeManager] Channel error/timeout, will reconnect');
           this.isReady = false;
-          this.handleReconnect();
+          this.forceReconnect();
         }
       });
+
+    // Start health check
+    this.startHealthCheck();
+
+    // Reconnect on tab visibility change
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
   }
 
-  private handleReconnect() {
-    if (this.reconnectTimer) {
-      console.log('[RealtimeManager] Already reconnecting, skipping');
-      return;
-    }
-    
-    console.log('[RealtimeManager] Scheduling reconnection in 1s...');
-    this.reconnectTimer = window.setTimeout(() => {
-      this.reconnectTimer = null;
-      if (this.channel) {
-        console.log('[RealtimeManager] Reconnecting - removing old channel');
-        supabase.removeChannel(this.channel);
-        this.channel = null;
-        this.initialized = false;
-        this.init();
+  private startHealthCheck() {
+    if (this.healthCheckInterval) return;
+
+    this.healthCheckInterval = window.setInterval(() => {
+      const inactive = Date.now() - this.lastEventTime;
+
+      if (inactive > 60000) {
+        console.log('[RealtimeManager] Health check: stale channel detected (60s inactive) → reconnect');
+        this.forceReconnect();
       }
-    }, 1000);
+    }, 15000);
+  }
+
+  private handleVisibilityChange = () => {
+    if (document.visibilityState === 'visible') {
+      const inactive = Date.now() - this.lastEventTime;
+      console.log('[RealtimeManager] Tab became visible, inactive for:', Math.round(inactive / 1000), 'seconds');
+
+      if (inactive > 30000) {
+        console.log('[RealtimeManager] Tab active after 30s+ inactivity → forcing reconnect');
+        this.forceReconnect();
+      }
+    }
+  };
+
+  private forceReconnect() {
+    console.log('[RealtimeManager] Forcing channel reconnect');
+
+    if (this.channel) {
+      supabase.removeChannel(this.channel);
+    }
+
+    this.channel = null;
+    this.initialized = false;
+    this.isReady = false;
+
+    // Small delay before reinitializing
+    setTimeout(() => this.init(), 300);
   }
 
   private emit(table: TableName, payload: RealtimePostgresChangesPayload<Record<string, unknown>>) {
+    this.lastEventTime = Date.now();
+    
     const eventType = payload.eventType as EventType;
     console.log(`[RealtimeManager] Emitting ${table}:${eventType}`, payload);
     
@@ -174,6 +228,15 @@ class RealtimeManager {
 
   // Force cleanup - only use when app is truly unmounting
   forceCleanup() {
+    // Clear health check interval
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = null;
+    }
+    
+    // Remove visibility change listener
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+    
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
