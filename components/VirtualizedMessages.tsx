@@ -45,15 +45,15 @@ const MessageRow = ({
   });
 
   return (
-    <div style={style} className={`flex px-4 py-2 ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
-      <div className={`max-w-[75%] rounded-2xl px-4 py-3 shadow-sm ${
+    <div style={style} className={`flex px-3 sm:px-4 py-1 ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+      <div className={`max-w-[80%] sm:max-w-[75%] px-4 py-2.5 shadow-sm ${
         isOwnMessage 
-          ? 'bg-softTeal text-white rounded-tr-none' 
-          : 'bg-white text-gray-800 rounded-tl-none'
+          ? 'bg-softTeal text-white rounded-2xl rounded-br-sm' 
+          : 'bg-white text-gray-800 rounded-2xl rounded-bl-sm'
       }`}>
-        <p className="text-sm">{msg.content}</p>
+        <p className="text-sm leading-relaxed break-words">{msg.content}</p>
         <p className={`text-[10px] mt-1 text-right ${
-          isOwnMessage ? 'text-blue-100' : 'text-gray-400'
+          isOwnMessage ? 'text-white/70' : 'text-gray-400'
         }`}>{timestamp}</p>
       </div>
     </div>
@@ -75,8 +75,8 @@ export const VirtualizedMessages: React.FC<VirtualizedMessagesProps> = ({
 
   if (messages.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center h-full">
-        <p className="text-gray-400">No messages yet. Start the conversation!</p>
+      <div className="flex-1 flex items-center justify-center h-full p-4">
+        <p className="text-gray-400 text-center text-sm">No messages yet. Start the conversation!</p>
       </div>
     );
   }
