@@ -7,9 +7,9 @@ export const Footer: React.FC = () => {
   return (
     <footer className="bg-deepBlue text-gray-300 pt-12 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
           {/* Brand */}
-          <div className="col-span-1">
+          <div className="col-span-2 md:col-span-1">
             <Link to="/" className="flex items-center mb-4 text-white hover:opacity-80 transition-opacity w-fit">
               <Search className="h-6 w-6 text-softTeal mr-2" />
               <span className="font-bold text-xl">Unfindable</span>
@@ -63,7 +63,7 @@ export const Footer: React.FC = () => {
           </div>
 
           {/* Newsletter */}
-          <div>
+          <div className="col-span-2 md:col-span-1">
             <h3 className="text-white font-semibold mb-4">Stay Updated</h3>
             <p className="text-sm text-gray-400 mb-4">Subscribe to our newsletter for the latest finds.</p>
             <div className="flex">
