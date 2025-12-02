@@ -75,24 +75,26 @@ export const VirtualizedMessages: React.FC<VirtualizedMessagesProps> = ({
 
   if (messages.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center h-full p-4">
+      <div className="h-full w-full flex items-center justify-center p-4">
         <p className="text-gray-400 text-center text-sm">No messages yet. Start the conversation!</p>
       </div>
     );
   }
 
   return (
-    <AutoSizer>
-      {({ height, width }) => (
-        <List<RowProps>
-          listRef={listRef}
-          rowCount={messages.length}
-          rowHeight={ITEM_HEIGHT}
-          rowComponent={MessageRow}
-          rowProps={{ messages, currentUserId }}
-          style={{ height, width }}
-        />
-      )}
-    </AutoSizer>
+    <div className="h-full w-full">
+      <AutoSizer>
+        {({ height, width }) => (
+          <List<RowProps>
+            listRef={listRef}
+            rowCount={messages.length}
+            rowHeight={ITEM_HEIGHT}
+            rowComponent={MessageRow}
+            rowProps={{ messages, currentUserId }}
+            style={{ height, width }}
+          />
+        )}
+      </AutoSizer>
+    </div>
   );
 };
