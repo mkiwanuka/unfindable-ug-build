@@ -7,8 +7,8 @@ export const ContactUs: React.FC = () => {
     <div className="min-h-screen bg-offWhite py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-deepBlue mb-4">Get in Touch</h1>
-          <p className="text-xl text-gray-600">Have a question or need assistance? We're here to help.</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-deepBlue mb-4">Get in Touch</h1>
+          <p className="text-base sm:text-lg md:text-xl text-gray-600">Have a question or need assistance? We're here to help.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -32,7 +32,7 @@ export const ContactUs: React.FC = () => {
                <div>
                  <h3 className="font-bold text-gray-900">Office</h3>
                  <p className="text-gray-600 text-sm mb-2">Come say hello at our office HQ.</p>
-                 <p className="text-gray-900 font-medium">100 Market St, Suite 300<br/>San Francisco, CA 94103</p>
+                 <p className="text-gray-900 font-medium">Plot 45, Kampala Road<br/>Kampala, Uganda</p>
                </div>
             </div>
 
@@ -43,7 +43,7 @@ export const ContactUs: React.FC = () => {
                <div>
                  <h3 className="font-bold text-gray-900">Phone</h3>
                  <p className="text-gray-600 text-sm mb-2">Mon-Fri from 8am to 5pm.</p>
-                 <p className="text-gray-900 font-medium">+1 (555) 000-0000</p>
+                 <p className="text-gray-900 font-medium">+256 700 123 456</p>
                </div>
             </div>
           </div>

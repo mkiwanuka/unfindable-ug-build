@@ -196,7 +196,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
       <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-2xl shadow-xl">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-deepBlue">
+          <h2 className="mt-6 text-center text-xl sm:text-2xl md:text-3xl font-extrabold text-deepBlue">
             {isSignup ? 'Create your account' : 'Sign in to Unfindable'}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">

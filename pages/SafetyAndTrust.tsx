@@ -8,8 +8,8 @@ export const SafetyAndTrust: React.FC = () => {
     <div className="min-h-screen bg-offWhite py-12">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-deepBlue mb-4">Safety & Trust</h1>
-          <p className="text-xl text-gray-600">Our commitment to keeping the Unfindable community secure.</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-deepBlue mb-4">Safety & Trust</h1>
+          <p className="text-base sm:text-lg md:text-xl text-gray-600">Our commitment to keeping the Unfindable community secure.</p>
         </div>
 
         <div className="space-y-8">
@@ -20,7 +20,7 @@ export const SafetyAndTrust: React.FC = () => {
                         <UserCheck className="h-6 w-6 text-softTeal" />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold text-deepBlue mb-4">Verified Community</h2>
+                        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-deepBlue mb-4">Verified Community</h2>
                         <p className="text-gray-600 mb-4">
                             Trust starts with knowing who you are dealing with.
                         </p>
@@ -40,7 +40,7 @@ export const SafetyAndTrust: React.FC = () => {
                         <Lock className="h-6 w-6 text-softTeal" />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold text-deepBlue mb-4">Secure Payments</h2>
+                        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-deepBlue mb-4">Secure Payments</h2>
                         <p className="text-gray-600 mb-4">
                             We protect your money until the job is done.
                         </p>
@@ -60,7 +60,7 @@ export const SafetyAndTrust: React.FC = () => {
                         <AlertTriangle className="h-6 w-6 text-softTeal" />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold text-deepBlue mb-4">Reporting & Support</h2>
+                        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-deepBlue mb-4">Reporting & Support</h2>
                         <p className="text-gray-600 mb-4">
                             We are here to help if things don't go as planned.
                         </p>

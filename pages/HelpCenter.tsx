@@ -29,7 +29,7 @@ export const HelpCenter: React.FC = () => {
     <div className="bg-offWhite min-h-screen">
         <div className="bg-deepBlue text-white py-16">
             <div className="max-w-3xl mx-auto px-4 text-center">
-                <h1 className="text-3xl font-bold mb-6">How can we help you?</h1>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-6">How can we help you?</h1>
                 <div className="relative">
                     <input type="text" placeholder="Search for help articles..." className="w-full px-6 py-4 rounded-lg text-gray-900 focus:outline-none shadow-lg" />
                     <button className="absolute right-2 top-2 bg-softTeal text-white px-4 py-2 rounded-md font-medium">Search</button>
@@ -59,7 +59,7 @@ export const HelpCenter: React.FC = () => {
             </div>
             
              <div className="mt-16">
-                <h2 className="text-2xl font-bold text-deepBlue mb-6">Frequently Asked Questions</h2>
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-deepBlue mb-6">Frequently Asked Questions</h2>
                 <div className="space-y-4">
                     {faqs.map((faq, i) => (
                         <div 

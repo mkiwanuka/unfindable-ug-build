@@ -14,7 +14,7 @@ const ReviewsTab: React.FC<{ userId: string }> = ({ userId }) => {
   if (loading) {
     return (
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-deepBlue">My Reviews</h2>
+        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-deepBlue">My Reviews</h2>
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex justify-center">
           <Loader2 className="h-6 w-6 text-softTeal animate-spin" />
         </div>
@@ -24,8 +24,8 @@ const ReviewsTab: React.FC<{ userId: string }> = ({ userId }) => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-deepBlue">My Reviews</h2>
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-deepBlue">My Reviews</h2>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <div className="flex items-center mb-6">
           <div className="bg-gray-100 p-4 rounded-full mr-4">
             <Star className="h-8 w-8 text-yellow-400 fill-current" />
@@ -314,7 +314,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
             <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full overflow-hidden max-h-[90vh] overflow-y-auto">
                 <div className="bg-deepBlue px-8 py-6 flex justify-between items-center">
                     <div>
-                        <h2 className="text-2xl font-bold text-white">Become a Finder</h2>
+                        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Become a Finder</h2>
                         <p className="text-blue-200 text-sm">Complete your profile to start finding items.</p>
                     </div>
                     <button onClick={() => setShowFinderOnboarding(false)} className="text-white hover:text-gray-300">
