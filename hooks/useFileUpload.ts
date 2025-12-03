@@ -17,6 +17,7 @@ interface UploadResult {
   url: string;
   type: string;
   name: string;
+  path?: string; // Storage path for refreshing signed URLs
 }
 
 export function useFileUpload(userId: string | null) {
@@ -55,14 +56,18 @@ export function useFileUpload(userId: string | null) {
 
       if (error) throw error;
 
-      const { data: urlData } = supabase.storage
+      // Use signed URL for private bucket access (1 hour expiry)
+      const { data: signedUrlData, error: signedError } = await supabase.storage
         .from('message-attachments')
-        .getPublicUrl(data.path);
+        .createSignedUrl(data.path, 3600);
+
+      if (signedError) throw signedError;
 
       return {
-        url: urlData.publicUrl,
+        url: signedUrlData.signedUrl,
         type: file.type,
-        name: file.name
+        name: file.name,
+        path: data.path // Store path for refreshing signed URLs later
       };
     } catch (error) {
       console.error('Upload error:', error);
