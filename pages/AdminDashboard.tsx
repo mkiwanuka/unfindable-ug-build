@@ -1,19 +1,88 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { Users, DollarSign, FileText, Activity, LayoutDashboard, Settings, Search, Filter, Trash2, Edit, Loader2, AlertCircle, CheckCircle, Clock, X } from 'lucide-react';
+import { Users, DollarSign, FileText, Activity, LayoutDashboard, Settings, Search, Filter, Trash2, Edit, Loader2, AlertCircle, CheckCircle, Clock, X, ShieldAlert } from 'lucide-react';
 import { useAdminStats, useAdminChartData } from '../hooks/useAdminStats';
 import { useAdminUsers, useDeleteUser, useUpdateUserRole } from '../hooks/useAdminUsers';
 import { useAdminRequests, useDeleteRequest, useUpdateRequestStatus } from '../hooks/useAdminRequests';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../src/integrations/supabase/client';
 
 export const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'requests' | 'settings'>('overview');
+  const [isVerifyingAdmin, setIsVerifyingAdmin] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Server-side admin verification on mount
+  useEffect(() => {
+    const verifyAdminRole = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setIsAdmin(false);
+          setIsVerifyingAdmin(false);
+          return;
+        }
+
+        // Check admin role from database (server-side verification)
+        const { data, error } = await supabase.rpc('has_role', {
+          _user_id: user.id,
+          _role: 'admin'
+        });
+
+        if (error) {
+          console.error('Error verifying admin role:', error);
+          setIsAdmin(false);
+        } else {
+          setIsAdmin(data === true);
+        }
+      } catch (error) {
+        console.error('Error verifying admin role:', error);
+        setIsAdmin(false);
+      } finally {
+        setIsVerifyingAdmin(false);
+      }
+    };
+
+    verifyAdminRole();
+  }, []);
+
   const [userFilter, setUserFilter] = useState<string>('');
   const [requestFilter, setRequestFilter] = useState<string>('');
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editingRequestId, setEditingRequestId] = useState<string | null>(null);
 
   const navigate = useNavigate();
+
+  // Show loading state while verifying admin role
+  if (isVerifyingAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-softTeal mx-auto mb-4" />
+          <p className="text-gray-600">Verifying admin access...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show access denied if not admin
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center bg-white p-8 rounded-lg shadow-md max-w-md">
+          <ShieldAlert className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Access Denied</h2>
+          <p className="text-gray-600 mb-6">You do not have administrator privileges to access this dashboard.</p>
+          <button
+            onClick={() => navigate('/')}
+            className="px-6 py-2 bg-softTeal text-white rounded-lg hover:bg-softTeal/90 transition-colors"
+          >
+            Return to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Data hooks
   const { data: stats, isLoading: statsLoading, error: statsError } = useAdminStats();
