@@ -11,6 +11,7 @@ import { useTypingIndicator } from '../hooks/useTypingIndicator';
 import { TypingIndicator } from '../components/TypingIndicator';
 import { useMessageReactions } from '../hooks/useMessageReactions';
 import { useFileUpload } from '../hooks/useFileUpload';
+import { useMessages } from '../hooks/useMessages';
 
 interface Message {
   id: string;
@@ -49,7 +50,6 @@ export const Messages: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserName, setCurrentUserName] = useState<string | null>(null);
@@ -57,6 +57,19 @@ export const Messages: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Use paginated messages hook
+  const {
+    messages,
+    hasMore,
+    loadingMore,
+    fetchMessages,
+    loadMore,
+    addMessage,
+    updateMessage,
+    replaceMessage,
+    removeMessage,
+  } = useMessages(selectedChatId);
 
   // File upload hook
   const { uploadFile, isUploading, uploadError, clearError } = useFileUpload(currentUserId);
@@ -154,27 +167,12 @@ export const Messages: React.FC = () => {
   };
 
   // Fetch messages for selected conversation
+  // Fetch messages when conversation changes (uses paginated hook)
   useEffect(() => {
     if (!selectedChatId) return;
 
-    const fetchMessages = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('messages')
-          .select('*')
-          .eq('conversation_id', selectedChatId)
-          .order('created_at', { ascending: true });
-
-        if (error) throw error;
-        setMessages(data || []);
-        
-        markMessagesAsRead(selectedChatId);
-      } catch (error) {
-        console.error('Error fetching messages:', error);
-      }
-    };
-
     fetchMessages();
+    markMessagesAsRead(selectedChatId);
 
     // Use consolidated realtime manager for new messages
     const unsubInsert = realtimeManager.subscribe('messages', 'INSERT', (payload) => {
@@ -182,14 +180,7 @@ export const Messages: React.FC = () => {
       
       // Only add if it's for the current conversation
       if (newMsg.conversation_id === selectedChatId) {
-        // Only add if not already present (avoid duplicates from optimistic updates)
-        setMessages(prev => {
-          const exists = prev.some(m => m.id === newMsg.id);
-          if (exists) {
-            return prev;
-          }
-          return [...prev, newMsg];
-        });
+        addMessage(newMsg);
         
         if (newMsg.sender_id !== currentUserId) {
           markMessagesAsRead(selectedChatId);
@@ -202,50 +193,34 @@ export const Messages: React.FC = () => {
       const updatedMsg = payload.new as Message & { conversation_id: string };
       
       if (updatedMsg.conversation_id === selectedChatId) {
-        setMessages(prev => 
-          prev.map(m => m.id === updatedMsg.id ? { ...m, read_at: updatedMsg.read_at } : m)
-        );
+        updateMessage(updatedMsg.id, { read_at: updatedMsg.read_at });
       }
     });
 
     // Refetch messages when channel becomes ready (catches missed messages during connection)
-    realtimeManager.onReady(() => {
+    const unsubReady = realtimeManager.onReady(() => {
       fetchMessages();
     });
 
     return () => {
       unsubInsert();
       unsubUpdate();
+      unsubReady();
     };
-  }, [selectedChatId, currentUserId]);
+  }, [selectedChatId, currentUserId, fetchMessages, addMessage, updateMessage]);
 
   // Window focus handler - refetch messages when tab regains focus
   useEffect(() => {
     if (!selectedChatId) return;
 
-    const fetchMessages = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('messages')
-          .select('*')
-          .eq('conversation_id', selectedChatId)
-          .order('created_at', { ascending: true });
-
-        if (error) throw error;
-        setMessages(data || []);
-        markMessagesAsRead(selectedChatId);
-      } catch (error) {
-        console.error('Error fetching messages on focus:', error);
-      }
-    };
-
     const handleFocus = () => {
       fetchMessages();
+      markMessagesAsRead(selectedChatId);
     };
 
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, [selectedChatId, currentUserId]);
+  }, [selectedChatId, fetchMessages]);
 
   // Handle selecting a conversation
   const handleSelectConversation = (chatId: string) => {
@@ -298,7 +273,7 @@ export const Messages: React.FC = () => {
       attachment_name: attachment?.name || null,
     };
     
-    setMessages(prev => [...prev, optimisticMessage]);
+    addMessage(optimisticMessage);
     setNewMessage('');
     setSelectedFile(null);
     stopTyping();
@@ -321,14 +296,12 @@ export const Messages: React.FC = () => {
 
       // Replace temp message with real one (has real ID)
       if (data) {
-        setMessages(prev => 
-          prev.map(msg => msg.id === tempId ? data : msg)
-        );
+        replaceMessage(tempId, data);
       }
     } catch (error) {
       console.error('Error sending message:', error);
       // Remove optimistic message on error
-      setMessages(prev => prev.filter(msg => msg.id !== tempId));
+      removeMessage(tempId);
       alert('Failed to send message. Please try again.');
     }
   };
@@ -461,6 +434,9 @@ export const Messages: React.FC = () => {
                 currentUserId={currentUserId}
                 reactions={reactions}
                 onReactionChange={refetchReactions}
+                hasMore={hasMore}
+                loadingMore={loadingMore}
+                onLoadMore={loadMore}
               />
             </div>
 

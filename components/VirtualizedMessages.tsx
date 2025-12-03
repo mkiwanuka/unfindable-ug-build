@@ -1,7 +1,7 @@
-import React, { useEffect, useRef } from 'react';
-import { Check, CheckCheck } from 'lucide-react';
-import { MessageReactions } from './MessageReactions';
-import { FileAttachment } from './FileAttachment';
+import React, { useEffect, useRef, useCallback } from 'react';
+import { List, useDynamicRowHeight, useListRef } from 'react-window';
+import { MessageRow } from './MessageRow';
+import { Loader2 } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -29,25 +29,71 @@ interface VirtualizedMessagesProps {
   currentUserId: string | null;
   reactions?: MessageReactionsMap;
   onReactionChange?: () => void;
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
 }
 
 export const VirtualizedMessages: React.FC<VirtualizedMessagesProps> = ({ 
   messages, 
   currentUserId,
   reactions = {},
-  onReactionChange
+  onReactionChange,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const listRef = useListRef();
+  const prevMessageCountRef = useRef(messages.length);
+  const dynamicRowHeight = useDynamicRowHeight({ 
+    defaultRowHeight: 80,
+    key: messages.length // Reset when message count changes significantly
+  });
 
-  // Auto-scroll to bottom when new messages arrive - scroll only the container, not the whole page
+  // Auto-scroll to bottom when new messages arrive (not when loading older ones)
   useEffect(() => {
-    if (containerRef.current) {
-      containerRef.current.scrollTo({
-        top: containerRef.current.scrollHeight,
-        behavior: 'smooth'
-      });
+    const prevCount = prevMessageCountRef.current;
+    const newCount = messages.length;
+    
+    // Only scroll to bottom if messages were added to the end (not prepended)
+    if (newCount > prevCount && listRef.current) {
+      // Small delay to let the list render
+      setTimeout(() => {
+        try {
+          listRef.current?.scrollToRow({ 
+            index: newCount - 1, 
+            align: 'end',
+            behavior: 'smooth' 
+          });
+        } catch (e) {
+          // Ignore scroll errors
+        }
+      }, 50);
     }
+    
+    prevMessageCountRef.current = newCount;
   }, [messages.length]);
+
+  // Initial scroll to bottom
+  useEffect(() => {
+    if (messages.length > 0 && listRef.current) {
+      setTimeout(() => {
+        try {
+          listRef.current?.scrollToRow({ 
+            index: messages.length - 1, 
+            align: 'end',
+            behavior: 'instant' 
+          });
+        } catch (e) {
+          // Ignore scroll errors
+        }
+      }, 100);
+    }
+  }, []); // Only on mount
+
+  const handleHeightChange = useCallback((index: number, height: number) => {
+    dynamicRowHeight.setRowHeight(index, height + 8); // +8 for padding
+  }, [dynamicRowHeight]);
 
   if (messages.length === 0) {
     return (
@@ -58,64 +104,45 @@ export const VirtualizedMessages: React.FC<VirtualizedMessagesProps> = ({
   }
 
   return (
-    <div ref={containerRef} className="h-full w-full overflow-y-auto px-3 sm:px-4 py-2">
-      {messages.map((msg) => {
-        const isOwnMessage = msg.sender_id === currentUserId;
-        const timestamp = new Date(msg.created_at).toLocaleTimeString('en-US', { 
-          hour: 'numeric', 
-          minute: '2-digit' 
-        });
-
-        const isRead = !!msg.read_at;
-        const isTempMessage = msg.id.startsWith('temp-');
-        const messageReactions = reactions[msg.id] || [];
-
-        return (
-          <div 
-            key={msg.id} 
-            className={`flex flex-col py-1 ${isOwnMessage ? 'items-end' : 'items-start'}`}
+    <div className="h-full w-full flex flex-col">
+      {/* Load More Button */}
+      {hasMore && (
+        <div className="flex justify-center py-2 bg-gray-50">
+          <button
+            onClick={onLoadMore}
+            disabled={loadingMore}
+            className="text-sm text-softTeal hover:text-softTeal/80 disabled:opacity-50 flex items-center gap-2"
           >
-            <div className={`max-w-[80%] sm:max-w-[75%] px-4 py-2.5 shadow-sm ${
-              isOwnMessage 
-                ? 'bg-softTeal text-white rounded-2xl rounded-br-sm' 
-                : 'bg-white text-gray-800 rounded-2xl rounded-bl-sm'
-            }`}>
-              {msg.attachment_url && msg.attachment_type && msg.attachment_name && (
-                <FileAttachment
-                  url={msg.attachment_url}
-                  type={msg.attachment_type}
-                  name={msg.attachment_name}
-                  isOwnMessage={isOwnMessage}
-                />
-              )}
-              {msg.content && (
-                <p className="text-sm leading-relaxed break-words">{msg.content}</p>
-              )}
-              <div className={`flex items-center justify-end gap-1 mt-1 ${
-                isOwnMessage ? 'text-white/70' : 'text-gray-400'
-              }`}>
-                <span className="text-[10px]">{timestamp}</span>
-                {isOwnMessage && !isTempMessage && (
-                  isRead ? (
-                    <CheckCheck className="h-3.5 w-3.5 text-blue-300" />
-                  ) : (
-                    <Check className="h-3.5 w-3.5" />
-                  )
-                )}
-              </div>
-            </div>
-            {!isTempMessage && (
-              <MessageReactions
-                messageId={msg.id}
-                reactions={messageReactions}
-                currentUserId={currentUserId}
-                isOwnMessage={isOwnMessage}
-                onReactionChange={onReactionChange || (() => {})}
-              />
+            {loadingMore ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              'Load earlier messages'
             )}
-          </div>
-        );
-      })}
+          </button>
+        </div>
+      )}
+      
+      {/* Virtualized Message List */}
+      <div className="flex-1">
+        <List
+          listRef={listRef}
+          rowCount={messages.length}
+          rowHeight={dynamicRowHeight}
+          rowComponent={MessageRow}
+          rowProps={{
+            messages,
+            currentUserId,
+            reactions,
+            onReactionChange: onReactionChange || (() => {}),
+            onHeightChange: handleHeightChange,
+          }}
+          overscanCount={5}
+          style={{ height: '100%', width: '100%' }}
+        />
+      </div>
     </div>
   );
 };
