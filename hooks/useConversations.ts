@@ -14,43 +14,54 @@ export interface ConversationWithDetails {
   updated_at: string;
 }
 
+interface ConversationRow {
+  id: string;
+  request_id: string | null;
+  requester_id: string;
+  finder_id: string;
+  updated_at: string;
+  request_title: string | null;
+  requester_name: string | null;
+  requester_avatar: string | null;
+  finder_name: string | null;
+  finder_avatar: string | null;
+  last_message_content: string | null;
+  last_message_at: string | null;
+}
+
 async function fetchConversationsForUser(userId: string): Promise<ConversationWithDetails[]> {
-  const { data: convos, error } = await supabase
-    .from('conversations')
-    .select(`
-      id,
-      request_id,
-      requester_id,
-      finder_id,
-      updated_at,
-      requests(title),
-      requester:profiles!conversations_requester_id_fkey(id, name, avatar),
-      finder:profiles!conversations_finder_id_fkey(id, name, avatar),
-      messages(id, content, created_at)
-    `)
-    .or(`requester_id.eq.${userId},finder_id.eq.${userId}`)
-    .order('updated_at', { ascending: false });
+  // Use the optimized RPC function that fetches only the latest message per conversation
+  const { data, error } = await supabase.rpc('get_conversations_with_last_message', {
+    p_user_id: userId
+  });
 
-  if (error) throw error;
+  if (error) {
+    console.error('Error fetching conversations:', error);
+    throw error;
+  }
 
-  return (convos || []).map((convo: any) => {
-    const partner = convo.requester_id === userId 
-      ? convo.finder 
-      : convo.requester;
-    
-    const lastMsg = Array.isArray(convo.messages) && convo.messages.length > 0
-      ? convo.messages.reduce((a: any, b: any) => 
-          new Date(a.created_at) > new Date(b.created_at) ? a : b
-        )
-      : null;
+  return ((data as ConversationRow[]) || []).map((convo) => {
+    // Determine partner based on current user
+    const isRequester = convo.requester_id === userId;
+    const partner = isRequester
+      ? {
+          id: convo.finder_id,
+          name: convo.finder_name || 'Unknown',
+          avatar: convo.finder_avatar || '',
+        }
+      : {
+          id: convo.requester_id,
+          name: convo.requester_name || 'Unknown',
+          avatar: convo.requester_avatar || '',
+        };
 
     return {
       id: convo.id,
       request_id: convo.request_id,
-      partner: partner || { id: 'unknown', name: 'Unknown', avatar: '' },
-      requestTitle: convo.requests?.title || 'General Inquiry',
-      lastMessage: lastMsg?.content || 'No messages yet',
-      updated_at: convo.updated_at
+      partner,
+      requestTitle: convo.request_title || 'General Inquiry',
+      lastMessage: convo.last_message_content || 'No messages yet',
+      updated_at: convo.updated_at,
     };
   });
 }

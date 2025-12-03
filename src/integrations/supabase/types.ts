@@ -469,6 +469,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_conversations_with_last_message: {
+        Args: { p_user_id: string }
+        Returns: {
+          finder_avatar: string
+          finder_id: string
+          finder_name: string
+          id: string
+          last_message_at: string
+          last_message_content: string
+          request_id: string
+          request_title: string
+          requester_avatar: string
+          requester_id: string
+          requester_name: string
+          updated_at: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
