@@ -16,7 +16,8 @@ class RealtimeManager {
   private subscriptions: Set<Subscription> = new Set();
   private initialized = false;
   private isReady = false;
-  private readyCallbacks: (() => void)[] = [];
+  private readyCallbacks: (() => void)[] = []; // One-shot callbacks for waitForReady()
+  private readyListeners: Set<() => void> = new Set(); // Persistent listeners for onReady()
   private reconnectTimer: number | null = null;
   
   // Health check properties
@@ -84,7 +85,8 @@ class RealtimeManager {
           console.log('[RealtimeManager] Channel is now ready');
           this.isReady = true;
           this.lastEventTime = Date.now();
-          // Execute all pending ready callbacks
+          
+          // Execute one-shot callbacks (for waitForReady() promises)
           this.readyCallbacks.forEach(cb => {
             try { 
               cb(); 
@@ -93,6 +95,16 @@ class RealtimeManager {
             }
           });
           this.readyCallbacks = [];
+          
+          // Execute persistent listeners (for badge hooks - fires on EVERY reconnect)
+          console.log('[RealtimeManager] Executing', this.readyListeners.size, 'persistent ready listeners');
+          this.readyListeners.forEach(cb => {
+            try { 
+              cb(); 
+            } catch (e) { 
+              console.error('[RealtimeManager] Ready listener error:', e); 
+            }
+          });
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           console.log('[RealtimeManager] Channel error/timeout, will reconnect');
           this.isReady = false;
@@ -194,15 +206,23 @@ class RealtimeManager {
     });
   }
 
-  // Register callback for when channel becomes ready
-  onReady(callback: () => void): void {
+  // Register persistent callback for when channel becomes ready (fires on every reconnect)
+  onReady(callback: () => void): () => void {
+    // If already ready, execute immediately
     if (this.isReady) {
       console.log('[RealtimeManager] Already ready, executing callback immediately');
       callback();
-    } else {
-      console.log('[RealtimeManager] Channel not ready, queuing callback');
-      this.readyCallbacks.push(callback);
     }
+    
+    // Always add to persistent listeners (for future reconnects)
+    this.readyListeners.add(callback);
+    console.log('[RealtimeManager] Registered persistent ready listener, total:', this.readyListeners.size);
+    
+    // Return unsubscribe function
+    return () => {
+      this.readyListeners.delete(callback);
+      console.log('[RealtimeManager] Removed ready listener, total:', this.readyListeners.size);
+    };
   }
 
   // Get current ready state
@@ -249,6 +269,7 @@ class RealtimeManager {
       this.isReady = false;
       this.subscriptions.clear();
       this.readyCallbacks = [];
+      this.readyListeners.clear();
     }
   }
 
