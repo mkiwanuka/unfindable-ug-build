@@ -31,14 +31,11 @@ class RealtimeManager {
   init() {
     // If already initialized with an active channel, don't reinitialize
     if (this.initialized && this.channel) {
-      console.log('[RealtimeManager] Already initialized, skipping');
       return;
     }
     
     this.initialized = true;
     this.isReady = false;
-
-    console.log('[RealtimeManager] Initializing global channel');
 
     this.channel = supabase
       .channel('global-realtime')
@@ -46,7 +43,6 @@ class RealtimeManager {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'requests' },
         (payload) => {
-          console.log('[RealtimeManager] RAW postgres_changes received for requests:', payload);
           this.lastEventTime = Date.now();
           this.emit('requests', payload);
         }
@@ -55,7 +51,6 @@ class RealtimeManager {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'messages' },
         (payload) => {
-          console.log('[RealtimeManager] RAW postgres_changes received for messages:', payload);
           this.lastEventTime = Date.now();
           this.emit('messages', payload);
         }
@@ -64,7 +59,6 @@ class RealtimeManager {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'notifications' },
         (payload) => {
-          console.log('[RealtimeManager] RAW postgres_changes received for notifications:', payload);
           this.lastEventTime = Date.now();
           this.emit('notifications', payload);
         }
@@ -73,16 +67,12 @@ class RealtimeManager {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'offers' },
         (payload) => {
-          console.log('[RealtimeManager] RAW postgres_changes received for offers:', payload);
           this.lastEventTime = Date.now();
           this.emit('offers', payload);
         }
       )
       .subscribe((status, err) => {
-        console.log('[RealtimeManager] Channel status:', status, err ? err : '');
-        
         if (status === 'SUBSCRIBED') {
-          console.log('[RealtimeManager] Channel is now ready');
           this.isReady = true;
           this.lastEventTime = Date.now();
           
@@ -97,7 +87,6 @@ class RealtimeManager {
           this.readyCallbacks = [];
           
           // Execute persistent listeners (for badge hooks - fires on EVERY reconnect)
-          console.log('[RealtimeManager] Executing', this.readyListeners.size, 'persistent ready listeners');
           this.readyListeners.forEach(cb => {
             try { 
               cb(); 
@@ -106,7 +95,6 @@ class RealtimeManager {
             }
           });
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.log('[RealtimeManager] Channel error/timeout, will reconnect');
           this.isReady = false;
           this.forceReconnect();
         }
@@ -126,7 +114,6 @@ class RealtimeManager {
       const inactive = Date.now() - this.lastEventTime;
 
       if (inactive > 60000) {
-        console.log('[RealtimeManager] Health check: stale channel detected (60s inactive) → reconnect');
         this.forceReconnect();
       }
     }, 15000);
@@ -135,18 +122,14 @@ class RealtimeManager {
   private handleVisibilityChange = () => {
     if (document.visibilityState === 'visible') {
       const inactive = Date.now() - this.lastEventTime;
-      console.log('[RealtimeManager] Tab became visible, inactive for:', Math.round(inactive / 1000), 'seconds');
 
       if (inactive > 30000) {
-        console.log('[RealtimeManager] Tab active after 30s+ inactivity → forcing reconnect');
         this.forceReconnect();
       }
     }
   };
 
   private forceReconnect() {
-    console.log('[RealtimeManager] Forcing channel reconnect');
-
     if (this.channel) {
       supabase.removeChannel(this.channel);
     }
@@ -163,7 +146,6 @@ class RealtimeManager {
     this.lastEventTime = Date.now();
     
     const eventType = payload.eventType as EventType;
-    console.log(`[RealtimeManager] Emitting ${table}:${eventType}`, payload);
     
     this.subscriptions.forEach((sub) => {
       if (sub.table === table && (sub.event === '*' || sub.event === eventType)) {
@@ -185,22 +167,17 @@ class RealtimeManager {
     const subscription: Subscription = { table, event, callback };
     this.subscriptions.add(subscription);
 
-    console.log(`[RealtimeManager] Subscribed to ${table}:${event}, total: ${this.subscriptions.size}, ready: ${this.isReady}`);
-
     // Return unsubscribe function
     return () => {
       this.subscriptions.delete(subscription);
-      console.log(`[RealtimeManager] Unsubscribed from ${table}:${event}, total: ${this.subscriptions.size}`);
     };
   }
 
   // Wait for channel to be ready
   waitForReady(): Promise<void> {
     if (this.isReady) {
-      console.log('[RealtimeManager] Already ready, resolving immediately');
       return Promise.resolve();
     }
-    console.log('[RealtimeManager] Waiting for channel to be ready...');
     return new Promise(resolve => {
       this.readyCallbacks.push(resolve);
     });
@@ -210,18 +187,15 @@ class RealtimeManager {
   onReady(callback: () => void): () => void {
     // If already ready, execute immediately
     if (this.isReady) {
-      console.log('[RealtimeManager] Already ready, executing callback immediately');
       callback();
     }
     
     // Always add to persistent listeners (for future reconnects)
     this.readyListeners.add(callback);
-    console.log('[RealtimeManager] Registered persistent ready listener, total:', this.readyListeners.size);
     
     // Return unsubscribe function
     return () => {
       this.readyListeners.delete(callback);
-      console.log('[RealtimeManager] Removed ready listener, total:', this.readyListeners.size);
     };
   }
 
@@ -233,12 +207,10 @@ class RealtimeManager {
   // Only cleanup if there are no active subscriptions (prevents StrictMode issues)
   cleanup() {
     if (this.subscriptions.size > 0) {
-      console.log('[RealtimeManager] Skipping cleanup - active subscriptions:', this.subscriptions.size);
       return;
     }
     
     if (this.channel) {
-      console.log('[RealtimeManager] Cleaning up global channel');
       supabase.removeChannel(this.channel);
       this.channel = null;
       this.initialized = false;
@@ -262,7 +234,6 @@ class RealtimeManager {
       this.reconnectTimer = null;
     }
     if (this.channel) {
-      console.log('[RealtimeManager] Force cleaning up global channel');
       supabase.removeChannel(this.channel);
       this.channel = null;
       this.initialized = false;
