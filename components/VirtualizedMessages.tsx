@@ -107,7 +107,7 @@ export const VirtualizedMessages: React.FC<VirtualizedMessagesProps> = ({
     <div className="h-full w-full flex flex-col">
       {/* Load More Button */}
       {hasMore && (
-        <div className="flex justify-center py-2 bg-gray-50">
+        <div className="flex justify-center py-2 bg-gray-50 flex-shrink-0">
           <button
             onClick={onLoadMore}
             disabled={loadingMore}
@@ -126,22 +126,23 @@ export const VirtualizedMessages: React.FC<VirtualizedMessagesProps> = ({
       )}
       
       {/* Virtualized Message List */}
-      <div className="flex-1">
-        <List
-          listRef={listRef}
-          rowCount={messages.length}
-          rowHeight={dynamicRowHeight}
-          rowComponent={MessageRow}
-          rowProps={{
-            messages,
-            currentUserId,
-            reactions,
-            onReactionChange: onReactionChange || (() => {}),
-            onHeightChange: handleHeightChange,
-          }}
-          overscanCount={5}
-          style={{ height: '100%', width: '100%' }}
-        />
+      <div className="flex-1 relative min-h-0">
+        <div className="absolute inset-0">
+          <List
+            listRef={listRef}
+            rowCount={messages.length}
+            rowHeight={dynamicRowHeight}
+            rowComponent={MessageRow}
+            rowProps={{
+              messages,
+              currentUserId,
+              reactions,
+              onReactionChange: onReactionChange || (() => {}),
+              onHeightChange: handleHeightChange,
+            }}
+            overscanCount={5}
+          />
+        </div>
       </div>
     </div>
   );

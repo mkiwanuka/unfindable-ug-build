@@ -428,16 +428,18 @@ export const Messages: React.FC = () => {
             </div>
 
             {/* Virtualized Messages */}
-            <div className="flex-1 bg-gray-50 h-full min-h-0">
-              <VirtualizedMessages 
-                messages={messages} 
-                currentUserId={currentUserId}
-                reactions={reactions}
-                onReactionChange={refetchReactions}
-                hasMore={hasMore}
-                loadingMore={loadingMore}
-                onLoadMore={loadMore}
-              />
+            <div className="flex-1 bg-gray-50 min-h-0 relative">
+              <div className="absolute inset-0">
+                <VirtualizedMessages 
+                  messages={messages} 
+                  currentUserId={currentUserId}
+                  reactions={reactions}
+                  onReactionChange={refetchReactions}
+                  hasMore={hasMore}
+                  loadingMore={loadingMore}
+                  onLoadMore={loadMore}
+                />
+              </div>
             </div>
 
             {/* Typing Indicator */}
