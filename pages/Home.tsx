@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Search, Briefcase, Car, Shirt, Hammer, Home as HomeIcon, Heart, Clock, CheckCircle, ArrowRight, MapPin, Package, Smartphone } from 'lucide-react';
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Plus, Briefcase, Car, Shirt, Hammer, Home as HomeIcon, Heart, Clock, CheckCircle, ArrowRight, MapPin, Package, Smartphone, Search } from 'lucide-react';
 import { Request } from '../types';
 
 interface HomeProps {
@@ -9,21 +9,6 @@ interface HomeProps {
 }
 
 export const Home: React.FC<HomeProps> = ({ featuredRequests }) => {
-  const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const handleSearch = () => {
-    if (searchQuery.trim()) {
-        navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-        handleSearch();
-    }
-  };
-
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
@@ -36,23 +21,16 @@ export const Home: React.FC<HomeProps> = ({ featuredRequests }) => {
           <p className="text-base sm:text-lg md:text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
             Stop searching endlessly. Just post it. We'll find it for you.
           </p>
-          <div className="max-w-3xl mx-auto relative">
-            <div className="flex shadow-xl rounded-lg overflow-hidden bg-[#F3F4F6]">
-              <button 
-                onClick={handleSearch}
-                className="bg-softTeal text-white px-6 py-4 hover:bg-opacity-90 font-semibold flex items-center order-first md:order-last"
-              >
-                <Search className="mr-2 h-5 w-5" /> Search
-              </button>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="What are you looking for? (e.g., Vintage Gameboy, Plumber, Rare Vinyl)"
-                className="flex-grow px-4 py-4 text-gray-800 focus:outline-none bg-[#F3F4F6]"
-              />
-            </div>
+          <div className="max-w-3xl mx-auto">
+            <Link 
+              to="/post-request"
+              className="inline-flex items-center bg-softTeal text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-opacity-90 transition-colors shadow-xl"
+            >
+              <Plus className="mr-2 h-6 w-6" /> Post a Request
+            </Link>
+            <p className="text-gray-400 mt-4">
+              Looking to help others? <Link to="/search" className="text-softTeal hover:underline">Browse open requests</Link>
+            </p>
           </div>
         </div>
       </section>
