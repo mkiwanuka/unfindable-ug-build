@@ -115,7 +115,7 @@ export const Home: React.FC<HomeProps> = ({ featuredRequests }) => {
               <Plus className="mr-2 h-5 w-5 sm:h-6 sm:w-6" /> Post a Request
             </Link>
             <p className="text-gray-400 mt-4 text-sm">
-              Looking to help others? <Link to="/search" className="text-softTeal hover:underline font-medium">Browse open requests →</Link>
+              Get paid to find things — <Link to="/search" className="text-softTeal hover:underline font-medium">Browse open requests →</Link>
             </p>
           </div>
         </div>
