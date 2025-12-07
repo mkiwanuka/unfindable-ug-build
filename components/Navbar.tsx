@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Bell, Menu, X, User as UserIcon, LogOut, PlusCircle } from 'lucide-react';
+import { Search, Bell, Menu, X, PlusCircle } from 'lucide-react';
 import { User } from '../types';
 
 interface NavbarProps {
@@ -62,10 +62,18 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout, unreadMessageCou
 
           {/* Right Side Icons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Link to="/post-request" className="bg-softTeal hover:bg-opacity-90 text-white px-4 py-2 rounded-md text-sm font-bold flex items-center shadow-lg transform hover:scale-105 transition-all">
+            {/* Show Browse Requests for Finders, Post Request for others */}
+            {user?.role === 'finder' ? (
+              <Link to="/search" className="bg-softTeal hover:bg-opacity-90 text-white px-4 py-2 rounded-md text-sm font-bold flex items-center shadow-lg transform hover:scale-105 transition-all">
+                <Search className="h-4 w-4 mr-2" />
+                Browse Requests
+              </Link>
+            ) : (
+              <Link to="/post-request" className="bg-softTeal hover:bg-opacity-90 text-white px-4 py-2 rounded-md text-sm font-bold flex items-center shadow-lg transform hover:scale-105 transition-all">
                 <PlusCircle className="h-4 w-4 mr-2" />
                 Post Request
-            </Link>
+              </Link>
+            )}
 
             {user ? (
               <>
@@ -136,10 +144,20 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout, unreadMessageCou
       {isMenuOpen && (
         <div className="md:hidden bg-deepBlue pb-3 px-2 pt-2 sm:px-3 space-y-1">
           <Link to="/" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700">Home</Link>
-          <Link to="/post-request" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2 rounded-md text-base font-medium bg-softTeal text-white hover:bg-opacity-90 mt-1 mb-1">
-            <PlusCircle className="h-4 w-4 mr-2" />
-            Post Request
-          </Link>
+          
+          {/* Show Browse Requests for Finders, Post Request for others */}
+          {user?.role === 'finder' ? (
+            <Link to="/search" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2 rounded-md text-base font-medium bg-softTeal text-white hover:bg-opacity-90 mt-1 mb-1">
+              <Search className="h-4 w-4 mr-2" />
+              Browse Requests
+            </Link>
+          ) : (
+            <Link to="/post-request" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2 rounded-md text-base font-medium bg-softTeal text-white hover:bg-opacity-90 mt-1 mb-1">
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Post Request
+            </Link>
+          )}
+          
           {user && (
             <>
               <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700">Dashboard</Link>
