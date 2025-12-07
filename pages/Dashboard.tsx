@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Request } from '../types';
-import { Package, Star, Settings, FileText, ExternalLink, MessageSquare, Loader2, Camera, X, Plus, Check } from 'lucide-react';
+import { Package, Star, Settings, FileText, ExternalLink, Loader2, Camera, X, Plus, Check, Search, ChevronDown, Wallet } from 'lucide-react';
 import { api } from '../lib/api';
 import { useReviews, ReviewData } from '../hooks/useReviews';
+import { useFinderStats } from '../hooks/useFinderStats';
 import { formatActivityDate, formatRelativeDate } from '../lib/dateUtils';
 import { profileUpdateSchema } from '../lib/schemas';
 
@@ -90,6 +91,56 @@ const ReviewsTab: React.FC<{ userId: string }> = ({ userId }) => {
   );
 };
 
+// Finder Stats Card Component
+const FinderStatsCard: React.FC<{ userId: string; rating?: number | null }> = ({ userId, rating }) => {
+  const { totalOffersMade, acceptedOffers, moneyEarned, loading } = useFinderStats(userId);
+
+  if (loading) {
+    return (
+      <div className="bg-gradient-to-br from-deepBlue to-blue-700 rounded-xl p-6 text-white">
+        <div className="flex justify-center">
+          <Loader2 className="h-6 w-6 animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-gradient-to-br from-deepBlue to-blue-700 rounded-xl p-6 text-white">
+      <h3 className="font-bold text-lg mb-4 flex items-center">
+        <Wallet className="h-5 w-5 mr-2" />
+        Finder Stats
+      </h3>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <p className="text-blue-200 text-sm">Offers Made</p>
+          <p className="text-2xl font-bold">{totalOffersMade}</p>
+        </div>
+        <div>
+          <p className="text-blue-200 text-sm">Offers Accepted</p>
+          <p className="text-2xl font-bold">{acceptedOffers}</p>
+        </div>
+        <div>
+          <p className="text-blue-200 text-sm">Money Earned</p>
+          <p className="text-2xl font-bold">UGX {moneyEarned.toLocaleString()}</p>
+        </div>
+        <div>
+          <p className="text-blue-200 text-sm">Rating</p>
+          <p className="text-2xl font-bold flex items-center">
+            {rating ? (
+              <>
+                {rating} <Star className="h-4 w-4 ml-1 fill-yellow-400 text-yellow-400" />
+              </>
+            ) : (
+              <span className="text-sm text-blue-200">No reviews yet</span>
+            )}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 interface DashboardProps {
   user: User;
   requests: Request[];
@@ -103,6 +154,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
   );
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
   const [showFinderOnboarding, setShowFinderOnboarding] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // Settings Form State
   const [settingsForm, setSettingsForm] = useState({
@@ -362,7 +414,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
                             value={onboardingForm.bio}
                             onChange={handleOnboardingChange}
                             rows={3}
-                            placeholder="Tell others who you are and what you’re great at finding..."
+                            placeholder="Tell others who you are and what you're great at finding..."
                             className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-softTeal focus:outline-none bg-[#F3F4F6]"
                         ></textarea>
                      </div>
@@ -432,11 +484,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
       )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Mobile CTA - Only show for Finders */}
+        {user.role === 'finder' && (
+          <div className="md:hidden mb-6">
+            <Link 
+              to="/search" 
+              className="w-full flex items-center justify-center bg-softTeal text-white px-6 py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-opacity-90 transition-all"
+            >
+              <Search className="mr-2 h-5 w-5" /> Browse Requests
+            </Link>
+          </div>
+        )}
+
         <div className="flex flex-col md:flex-row gap-8">
           
           {/* Sidebar */}
           <div className="w-full md:w-64 bg-white rounded-xl shadow-sm p-6 h-fit">
-            <div className="flex flex-col items-center mb-8">
+            {/* Collapsible Profile Section on Mobile */}
+            <div className="flex flex-col items-center mb-4 md:mb-8">
               <div className="relative group cursor-pointer mb-3" onClick={handleAvatarClick}>
                   <img src={user.avatar} alt="Profile" className="h-20 w-20 rounded-full border-4 border-gray-50 object-cover" />
                   <div className="absolute inset-0 rounded-full bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -455,10 +521,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
               <Link to={`/profile/${user.id}`} className="text-xs text-gray-400 mt-2 hover:text-deepBlue flex items-center">View Public Profile <ExternalLink className="h-3 w-3 ml-1" /></Link>
             </div>
             
-            <nav className="space-y-1">
+            {/* Mobile Menu Toggle */}
+            <button 
+              className="md:hidden w-full flex items-center justify-between px-4 py-3 bg-gray-50 rounded-lg mb-2"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              <span className="font-medium text-gray-700">Menu</span>
+              <ChevronDown className={`h-5 w-5 text-gray-500 transition-transform ${isMobileMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+            
+            <nav className={`space-y-1 ${isMobileMenuOpen ? 'block' : 'hidden md:block'}`}>
+              {/* Browse Requests - First item for Finders */}
+              {user.role === 'finder' && (
+                <Link
+                  to="/search"
+                  className="w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  <Search className="mr-3 h-5 w-5" /> Browse Requests
+                </Link>
+              )}
+              
               {user.role === 'requester' && (
                 <button
-                  onClick={() => setActiveTab('requests')}
+                  onClick={() => { setActiveTab('requests'); setIsMobileMenuOpen(false); }}
                   className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'requests' ? 'bg-deepBlue text-white' : 'text-gray-600 hover:bg-gray-50'}`}
                 >
                   <FileText className="mr-3 h-5 w-5" /> My Requests
@@ -467,13 +552,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
               {user.role === 'finder' && (
                 <>
                    <button
-                    onClick={() => setActiveTab('offers')}
+                    onClick={() => { setActiveTab('offers'); setIsMobileMenuOpen(false); }}
                     className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'offers' ? 'bg-deepBlue text-white' : 'text-gray-600 hover:bg-gray-50'}`}
                   >
                     <Package className="mr-3 h-5 w-5" /> My Offers
                   </button>
                   <button
-                    onClick={() => setActiveTab('reviews')}
+                    onClick={() => { setActiveTab('reviews'); setIsMobileMenuOpen(false); }}
                     className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'reviews' ? 'bg-deepBlue text-white' : 'text-gray-600 hover:bg-gray-50'}`}
                   >
                     <Star className="mr-3 h-5 w-5" /> Reviews
@@ -481,7 +566,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
                 </>
               )}
                <button
-                onClick={() => setActiveTab('settings')}
+                onClick={() => { setActiveTab('settings'); setIsMobileMenuOpen(false); }}
                 className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'settings' ? 'bg-deepBlue text-white' : 'text-gray-600 hover:bg-gray-50'}`}
               >
                 <Settings className="mr-3 h-5 w-5" /> Settings
@@ -526,16 +611,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
              {activeTab === 'offers' && (
               <div className="space-y-6">
                 <h2 className="text-2xl font-bold text-deepBlue">My Offers</h2>
-                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <p className="text-gray-500 text-center py-4">
-                      Your offers will appear here. Browse requests and make offers to get started!
-                    </p>
-                    <div className="text-center mt-2">
-                      <Link to="/search" className="text-softTeal hover:underline text-sm font-medium">
-                        Browse Requests
-                      </Link>
-                    </div>
-                  </div>
+                
+                {/* Finder Stats Card */}
+                <FinderStatsCard userId={user.id} rating={user.rating} />
+                
+                {/* Empty State with improved messaging */}
+                <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center">
+                  <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-2 font-medium">You haven't made any offers yet.</p>
+                  <p className="text-gray-500 text-sm mb-6">
+                    Help people find what they need — and get paid for it.
+                  </p>
+                  <Link 
+                    to="/search" 
+                    className="inline-flex items-center bg-softTeal text-white px-6 py-3 rounded-lg font-medium hover:bg-opacity-90 transition-all"
+                  >
+                    <Search className="mr-2 h-5 w-5" /> Browse Open Requests
+                  </Link>
+                </div>
               </div>
              )}
 
