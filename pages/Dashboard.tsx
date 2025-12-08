@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Request } from '../types';
-import { Package, Star, Settings, FileText, ExternalLink, Loader2, Camera, X, Plus, Check, Search, ChevronDown, Wallet } from 'lucide-react';
+import { Package, Star, Settings, FileText, ExternalLink, Loader2, Camera, X, Plus, Check, Search, ChevronDown, Wallet, Clock } from 'lucide-react';
 import { api } from '../lib/api';
 import { useReviews, ReviewData } from '../hooks/useReviews';
 import { useFinderStats } from '../hooks/useFinderStats';
+import { useFinderOffers, OfferWithRequest } from '../hooks/useFinderOffers';
 import { formatActivityDate, formatRelativeDate } from '../lib/dateUtils';
 import { profileUpdateSchema } from '../lib/schemas';
 
@@ -87,6 +88,108 @@ const ReviewsTab: React.FC<{ userId: string }> = ({ userId }) => {
           </div>
         )}
       </div>
+    </div>
+  );
+};
+
+// Status Badge Component
+const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
+  const statusConfig: Record<string, { bg: string; text: string }> = {
+    'Pending': { bg: 'bg-yellow-100', text: 'text-yellow-800' },
+    'Accepted': { bg: 'bg-green-100', text: 'text-green-800' },
+    'Rejected': { bg: 'bg-red-100', text: 'text-red-800' },
+    'Completed': { bg: 'bg-blue-100', text: 'text-blue-800' },
+  };
+  
+  const config = statusConfig[status] || { bg: 'bg-gray-100', text: 'text-gray-800' };
+  
+  return (
+    <span className={`px-2 py-1 ${config.bg} ${config.text} text-xs rounded-md font-semibold`}>
+      {status}
+    </span>
+  );
+};
+
+// Offers Tab Component
+const OffersTab: React.FC<{ userId: string; rating?: number | null }> = ({ userId, rating }) => {
+  const { offers, loading, error } = useFinderOffers(userId);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold text-deepBlue">My Offers</h2>
+        <FinderStatsCard userId={userId} rating={rating} />
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex justify-center">
+          <Loader2 className="h-6 w-6 text-softTeal animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-deepBlue">My Offers</h2>
+      
+      {/* Finder Stats Card */}
+      <FinderStatsCard userId={userId} rating={rating} />
+      
+      {offers.length === 0 ? (
+        /* Empty State */
+        <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center">
+          <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-600 mb-2 font-medium">You haven't made any offers yet.</p>
+          <p className="text-gray-500 text-sm mb-6">
+            Help people find what they need — and get paid for it.
+          </p>
+          <Link 
+            to="/search" 
+            className="inline-flex items-center bg-softTeal text-white px-6 py-3 rounded-lg font-medium hover:bg-opacity-90 transition-all"
+          >
+            <Search className="mr-2 h-5 w-5" /> Browse Open Requests
+          </Link>
+        </div>
+      ) : (
+        /* Offers List */
+        <div className="space-y-4">
+          {offers.map((offer) => (
+            <div key={offer.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+              <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+                <div className="flex-1">
+                  <Link 
+                    to={`/request/${offer.request_id}`}
+                    className="font-bold text-lg text-gray-800 hover:text-softTeal transition-colors"
+                  >
+                    {offer.request?.title || 'Request'}
+                  </Link>
+                  <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-gray-500">
+                    <span className="font-semibold text-deepBlue">
+                      UGX {offer.price.toLocaleString()}
+                    </span>
+                    <span className="flex items-center">
+                      <Clock className="h-4 w-4 mr-1" />
+                      {offer.delivery_days} day{offer.delivery_days !== 1 ? 's' : ''}
+                    </span>
+                    <span>•</span>
+                    <span>{formatRelativeDate(offer.created_at)}</span>
+                  </div>
+                  {offer.message && (
+                    <p className="mt-2 text-sm text-gray-600 line-clamp-2">{offer.message}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <StatusBadge status={offer.status} />
+                  <Link 
+                    to={`/request/${offer.request_id}`}
+                    className="text-sm text-softTeal hover:underline"
+                  >
+                    View Request
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -485,17 +588,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Mobile CTA - Only show for Finders */}
-        {user.role === 'finder' && (
-          <div className="md:hidden mb-6">
-            <Link 
-              to="/search" 
-              className="w-full flex items-center justify-center bg-softTeal text-white px-6 py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-opacity-90 transition-all"
-            >
-              <Search className="mr-2 h-5 w-5" /> Browse Requests
-            </Link>
-          </div>
-        )}
 
         <div className="flex flex-col md:flex-row gap-8">
           
@@ -531,15 +623,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
             </button>
             
             <nav className={`space-y-1 ${isMobileMenuOpen ? 'block' : 'hidden md:block'}`}>
-              {/* Browse Requests - First item for Finders */}
-              {user.role === 'finder' && (
-                <Link
-                  to="/search"
-                  className="w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
-                >
-                  <Search className="mr-3 h-5 w-5" /> Browse Requests
-                </Link>
-              )}
               
               {user.role === 'requester' && (
                 <button
@@ -609,27 +692,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
 
              {/* Offers Tab (Finder) */}
              {activeTab === 'offers' && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-deepBlue">My Offers</h2>
-                
-                {/* Finder Stats Card */}
-                <FinderStatsCard userId={user.id} rating={user.rating} />
-                
-                {/* Empty State with improved messaging */}
-                <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center">
-                  <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-600 mb-2 font-medium">You haven't made any offers yet.</p>
-                  <p className="text-gray-500 text-sm mb-6">
-                    Help people find what they need — and get paid for it.
-                  </p>
-                  <Link 
-                    to="/search" 
-                    className="inline-flex items-center bg-softTeal text-white px-6 py-3 rounded-lg font-medium hover:bg-opacity-90 transition-all"
-                  >
-                    <Search className="mr-2 h-5 w-5" /> Browse Open Requests
-                  </Link>
-                </div>
-              </div>
+              <OffersTab userId={user.id} rating={user.rating} />
              )}
 
              {/* Reviews Tab (Finder Only) */}
