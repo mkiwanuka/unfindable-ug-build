@@ -56,19 +56,13 @@ async function fetchAdminUsers(): Promise<AdminUser[]> {
 type AppRole = 'admin' | 'finder' | 'requester' | 'guest';
 
 async function updateUserRole(userId: string, newRole: AppRole, action: 'add' | 'remove'): Promise<void> {
-  if (action === 'add') {
-    const { error } = await supabase
-      .from('user_roles')
-      .insert({ user_id: userId, role: newRole });
-    if (error) throw error;
-  } else {
-    const { error } = await supabase
-      .from('user_roles')
-      .delete()
-      .eq('user_id', userId)
-      .eq('role', newRole);
-    if (error) throw error;
-  }
+  // Use secure RPC function with audit logging
+  const { error } = await supabase.rpc('manage_user_role', {
+    _target_user_id: userId,
+    _role: newRole,
+    _action: action
+  });
+  if (error) throw error;
 }
 
 async function deleteUser(userId: string): Promise<void> {
