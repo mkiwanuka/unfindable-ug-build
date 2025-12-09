@@ -28,10 +28,14 @@ async function mapProfileToUser(profile: any, email?: string): Promise<User> {
   };
 }
 
+// Public profile fields (excludes sensitive fields like balance)
+const PUBLIC_PROFILE_FIELDS = 'id, name, avatar, bio, location, skills, rating, completed_tasks, response_time, joined_date, verified, created_at, updated_at';
+
 // Helper to map database request to Request type
 async function mapRequestToRequest(dbRequest: any): Promise<Request> {
+  // Use public_profiles view to avoid exposing balance
   const { data: profile } = await supabase
-    .from('profiles')
+    .from('public_profiles')
     .select('*')
     .eq('id', dbRequest.posted_by_id)
     .single();
@@ -137,8 +141,10 @@ export const api = {
     },
 
     async getUser(userId: string): Promise<User | null> {
+      // Use public_profiles view for fetching other users' profiles
+      // This excludes sensitive fields like balance
       const { data: profile, error } = await supabase
-        .from('profiles')
+        .from('public_profiles')
         .select('*')
         .eq('id', userId)
         .single();
