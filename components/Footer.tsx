@@ -1,9 +1,82 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Facebook, Twitter, Instagram, Mail } from 'lucide-react';
+import { Search, Facebook, Twitter, Instagram, Mail, Loader2, Check, AlertCircle } from 'lucide-react';
+import { supabase } from '../src/integrations/supabase/client';
+import { z } from 'zod';
+
+const emailSchema = z.string().email('Please enter a valid email address');
+
+type FeedbackState = 'idle' | 'success' | 'error' | 'duplicate';
 
 export const Footer: React.FC = () => {
+  const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [feedback, setFeedback] = useState<FeedbackState>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFeedback('idle');
+    setErrorMessage('');
+    
+    // Validate email
+    const result = emailSchema.safeParse(email);
+    if (!result.success) {
+      setFeedback('error');
+      setErrorMessage(result.error.issues[0].message);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('newsletter_subscribers')
+        .insert({ email: email.toLowerCase().trim() });
+
+      if (error) {
+        // Handle duplicate email
+        if (error.code === '23505') {
+          setFeedback('duplicate');
+        } else {
+          throw error;
+        }
+      } else {
+        setFeedback('success');
+        setEmail('');
+      }
+    } catch (error) {
+      setFeedback('error');
+      setErrorMessage('Something went wrong. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getFeedbackMessage = () => {
+    switch (feedback) {
+      case 'success':
+        return (
+          <p className="text-green-400 text-xs mt-2 flex items-center gap-1">
+            <Check className="h-3 w-3" /> Thanks for subscribing!
+          </p>
+        );
+      case 'duplicate':
+        return (
+          <p className="text-yellow-400 text-xs mt-2 flex items-center gap-1">
+            <AlertCircle className="h-3 w-3" /> You're already subscribed!
+          </p>
+        );
+      case 'error':
+        return (
+          <p className="text-red-400 text-xs mt-2 flex items-center gap-1">
+            <AlertCircle className="h-3 w-3" /> {errorMessage}
+          </p>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <footer className="bg-deepBlue text-gray-300 pt-12 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -66,16 +139,33 @@ export const Footer: React.FC = () => {
           <div className="col-span-2 md:col-span-1">
             <h3 className="text-white font-semibold mb-4">Stay Updated</h3>
             <p className="text-sm text-gray-400 mb-4">Subscribe to our newsletter for the latest finds.</p>
-            <div className="flex">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="px-3 py-2 rounded-l-md w-full bg-gray-800 border-none focus:ring-1 focus:ring-softTeal text-white text-sm"
-              />
-              <button className="bg-softTeal hover:bg-opacity-90 px-4 py-2 rounded-r-md text-white">
-                <Mail className="h-4 w-4" />
-              </button>
-            </div>
+            <form onSubmit={handleSubscribe}>
+              <div className="flex">
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (feedback !== 'idle') setFeedback('idle');
+                  }}
+                  disabled={isLoading}
+                  className="px-3 py-2 rounded-l-md w-full bg-gray-800 border-none focus:ring-1 focus:ring-softTeal text-white text-sm disabled:opacity-50"
+                />
+                <button 
+                  type="submit"
+                  disabled={isLoading}
+                  className="bg-softTeal hover:bg-opacity-90 px-4 py-2 rounded-r-md text-white disabled:opacity-50"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Mail className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              {getFeedbackMessage()}
+            </form>
           </div>
         </div>
         <div className="border-t border-gray-700 mt-12 pt-8 text-center text-sm text-gray-500">
