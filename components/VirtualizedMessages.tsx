@@ -159,8 +159,8 @@ export const VirtualizedMessages: React.FC<VirtualizedMessagesProps> = ({
       )}
       
       {/* Virtualized Message List */}
-      <div className="flex-1 relative min-h-0">
-        <div className="absolute inset-0">
+      <div className="flex-1 relative min-h-0 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden">
           <List
             listRef={listRef}
             rowCount={messages.length}
