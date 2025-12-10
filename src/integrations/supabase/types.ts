@@ -644,6 +644,41 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_public_user_with_role: {
+        Args: { p_user_id: string }
+        Returns: {
+          avatar: string
+          bio: string
+          completed_tasks: number
+          id: string
+          joined_date: string
+          location: string
+          name: string
+          rating: number
+          response_time: string
+          role: string
+          skills: string[]
+          verified: boolean
+        }[]
+      }
+      get_user_with_role: {
+        Args: { p_user_id: string }
+        Returns: {
+          avatar: string
+          balance: number
+          bio: string
+          completed_tasks: number
+          id: string
+          joined_date: string
+          location: string
+          name: string
+          rating: number
+          response_time: string
+          role: string
+          skills: string[]
+          verified: boolean
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

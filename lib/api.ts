@@ -1,15 +1,29 @@
 import { supabase } from '../src/integrations/supabase/client';
 import { User, Request, UserRole, Offer } from '../types';
 
-// Helper to map database profile + role to User type
-async function mapProfileToUser(profile: any, email?: string): Promise<User> {
-  const { data: roles } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', profile.id);
-  
-  const role = roles?.[0]?.role || 'guest';
-  
+// Helper to map RPC result to User type (single query, no N+1)
+function mapRpcResultToUser(data: any, email?: string): User {
+  return {
+    id: data.id,
+    name: data.name,
+    email: email || '',
+    role: (data.role || 'guest') as UserRole,
+    avatar: data.avatar,
+    bio: data.bio,
+    location: data.location,
+    joinedDate: data.joined_date,
+    verified: data.verified,
+    balance: parseFloat(data.balance) || 0,
+    skills: data.skills || [],
+    rating: parseFloat(data.rating) || undefined,
+    completedTasks: data.completed_tasks || 0,
+    responseTime: data.response_time,
+  };
+}
+
+// Helper to map joined profile+role data to User (for inline joins)
+function mapJoinedProfileToUser(profile: any, email?: string): User {
+  const role = profile?.user_roles?.[0]?.role || 'guest';
   return {
     id: profile.id,
     name: profile.name,
@@ -28,45 +42,20 @@ async function mapProfileToUser(profile: any, email?: string): Promise<User> {
   };
 }
 
-// Public profile fields (excludes sensitive fields like balance)
-const PUBLIC_PROFILE_FIELDS = 'id, name, avatar, bio, location, skills, rating, completed_tasks, response_time, joined_date, verified, created_at, updated_at';
-
-// Helper to map database request to Request type
-async function mapRequestToRequest(dbRequest: any): Promise<Request> {
-  // Use public_profiles view to avoid exposing balance
-  const { data: profile } = await supabase
-    .from('public_profiles')
-    .select('*')
-    .eq('id', dbRequest.posted_by_id)
-    .single();
-  
-  const postedBy = profile ? await mapProfileToUser(profile) : {
-    id: dbRequest.posted_by_id,
+// Helper to create unknown user placeholder
+function createUnknownUser(userId: string): User {
+  return {
+    id: userId,
     name: 'Unknown User',
     email: '',
     role: 'guest' as UserRole,
     avatar: '',
   };
-
-  return {
-    id: dbRequest.id,
-    title: dbRequest.title,
-    category: dbRequest.category,
-    description: dbRequest.description,
-    budgetMin: parseFloat(dbRequest.budget_min),
-    budgetMax: parseFloat(dbRequest.budget_max),
-    deadline: dbRequest.deadline,
-    location: dbRequest.location,
-    status: dbRequest.status,
-    offerCount: dbRequest.offer_count,
-    imageUrl: dbRequest.image_url,
-    postedBy,
-    createdAt: dbRequest.created_at,
-  };
 }
 
 export const api = {
   auth: {
+    // OPTIMIZED: Uses single RPC call instead of profile + role queries
     async login(email: string, password: string): Promise<User> {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -76,15 +65,14 @@ export const api = {
       if (error) throw error;
       if (!data.user) throw new Error('Login failed');
 
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', data.user.id)
-        .single();
+      // Single RPC call gets profile + role together
+      const { data: userData, error: rpcError } = await supabase
+        .rpc('get_user_with_role', { p_user_id: data.user.id });
 
-      if (profileError) throw profileError;
+      if (rpcError) throw rpcError;
+      if (!userData || userData.length === 0) throw new Error('Profile not found');
 
-      return mapProfileToUser(profile, data.user.email);
+      return mapRpcResultToUser(userData[0], data.user.email);
     },
 
     async signup(userData: {
@@ -108,16 +96,14 @@ export const api = {
       if (error) throw error;
       if (!data.user) throw new Error('Signup failed');
 
-      // Profile is created automatically via trigger
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', data.user.id)
-        .single();
+      // Single RPC call gets profile + role together
+      const { data: profile, error: rpcError } = await supabase
+        .rpc('get_user_with_role', { p_user_id: data.user.id });
 
-      if (profileError) throw profileError;
+      if (rpcError) throw rpcError;
+      if (!profile || profile.length === 0) throw new Error('Profile not found');
 
-      return mapProfileToUser(profile, data.user.email);
+      return mapRpcResultToUser(profile[0], data.user.email);
     },
 
     async logout(): Promise<void> {
@@ -125,38 +111,31 @@ export const api = {
       if (error) throw error;
     },
 
+    // OPTIMIZED: Uses single RPC call
     async getCurrentSession(): Promise<User | null> {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return null;
 
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
+      const { data, error } = await supabase
+        .rpc('get_user_with_role', { p_user_id: session.user.id });
 
-      if (error) return null;
+      if (error || !data || data.length === 0) return null;
 
-      return mapProfileToUser(profile, session.user.email);
+      return mapRpcResultToUser(data[0], session.user.email);
     },
 
+    // OPTIMIZED: Uses single RPC call (public version, no balance)
     async getUser(userId: string): Promise<User | null> {
-      // Use public_profiles view for fetching other users' profiles
-      // This excludes sensitive fields like balance
-      const { data: profile, error } = await supabase
-        .from('public_profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      const { data, error } = await supabase
+        .rpc('get_public_user_with_role', { p_user_id: userId });
 
-      if (error) return null;
+      if (error || !data || data.length === 0) return null;
 
-      return mapProfileToUser(profile);
+      return mapRpcResultToUser(data[0]);
     },
 
     async updateUser(userId: string, updates: Partial<User>): Promise<User> {
       // Use the secure RPC function instead of direct update
-      // This prevents users from modifying sensitive fields like balance, verified, rating
       const { error } = await supabase.rpc('update_user_profile_secure', {
         _name: updates.name ?? null,
         _avatar: updates.avatar ?? null,
@@ -196,7 +175,7 @@ export const api = {
   },
 
   requests: {
-    // OPTIMIZED: Paginated requests with optional status filter
+    // OPTIMIZED: Single query with JOIN, no N+1
     async getAll(options: { 
       page?: number; 
       limit?: number; 
@@ -218,7 +197,6 @@ export const api = {
         .order('created_at', { ascending: false })
         .range(from, to);
 
-      // Filter by status if provided
       if (status) {
         query = query.eq('status', status);
       }
@@ -227,33 +205,11 @@ export const api = {
 
       if (error) throw error;
 
-      // Map the joined data to Request objects
       const requests = (data || []).map(dbRequest => {
         const profile = (dbRequest as any).profiles;
-        const role = profile?.user_roles?.[0]?.role || 'guest';
-
-        const postedBy: User = profile ? {
-          id: profile.id,
-          name: profile.name,
-          email: '',
-          role: role as UserRole,
-          avatar: profile.avatar,
-          bio: profile.bio,
-          location: profile.location,
-          joinedDate: profile.joined_date,
-          verified: profile.verified,
-          balance: parseFloat(profile.balance) || 0,
-          skills: profile.skills || [],
-          rating: parseFloat(profile.rating) || undefined,
-          completedTasks: profile.completed_tasks || 0,
-          responseTime: profile.response_time,
-        } : {
-          id: dbRequest.posted_by_id,
-          name: 'Unknown User',
-          email: '',
-          role: 'guest' as UserRole,
-          avatar: '',
-        };
+        const postedBy = profile 
+          ? mapJoinedProfileToUser(profile)
+          : createUnknownUser(dbRequest.posted_by_id);
 
         return {
           id: dbRequest.id,
@@ -307,24 +263,9 @@ export const api = {
       if (error) throw error;
 
       const profile = (data as any).profiles;
-      const role = profile?.user_roles?.[0]?.role || 'guest';
-
-      const postedBy: User = profile ? {
-        id: profile.id,
-        name: profile.name,
-        email: user.email,
-        role: role as UserRole,
-        avatar: profile.avatar,
-        bio: profile.bio,
-        location: profile.location,
-        joinedDate: profile.joined_date,
-        verified: profile.verified,
-        balance: parseFloat(profile.balance) || 0,
-        skills: profile.skills || [],
-        rating: parseFloat(profile.rating) || undefined,
-        completedTasks: profile.completed_tasks || 0,
-        responseTime: profile.response_time,
-      } : user;
+      const postedBy = profile 
+        ? mapJoinedProfileToUser(profile, user.email)
+        : user;
 
       return {
         id: data.id,
@@ -354,6 +295,7 @@ export const api = {
   },
 
   offers: {
+    // OPTIMIZED: Single query with JOIN, no N+1
     async getByRequest(requestId: string): Promise<Offer[]> {
       const { data, error } = await supabase
         .from('offers')
@@ -371,24 +313,9 @@ export const api = {
 
       return data.map(offer => {
         const profile = (offer as any).profiles;
-        const role = profile?.user_roles?.[0]?.role || 'guest';
-
-        const finder: User = {
-          id: profile.id,
-          name: profile.name,
-          email: '',
-          role: role as UserRole,
-          avatar: profile.avatar,
-          bio: profile.bio,
-          location: profile.location,
-          joinedDate: profile.joined_date,
-          verified: profile.verified,
-          balance: parseFloat(profile.balance) || 0,
-          skills: profile.skills || [],
-          rating: parseFloat(profile.rating) || undefined,
-          completedTasks: profile.completed_tasks || 0,
-          responseTime: profile.response_time,
-        };
+        const finder = profile 
+          ? mapJoinedProfileToUser(profile)
+          : createUnknownUser(offer.finder_id);
 
         return {
           id: offer.id,
@@ -430,24 +357,9 @@ export const api = {
       if (error) throw error;
 
       const profile = (data as any).profiles;
-      const role = profile?.user_roles?.[0]?.role || 'guest';
-
-      const finder: User = {
-        id: profile.id,
-        name: profile.name,
-        email: '',
-        role: role as UserRole,
-        avatar: profile.avatar,
-        bio: profile.bio,
-        location: profile.location,
-        joinedDate: profile.joined_date,
-        verified: profile.verified,
-        balance: parseFloat(profile.balance) || 0,
-        skills: profile.skills || [],
-        rating: parseFloat(profile.rating) || undefined,
-        completedTasks: profile.completed_tasks || 0,
-        responseTime: profile.response_time,
-      };
+      const finder = profile 
+        ? mapJoinedProfileToUser(profile)
+        : createUnknownUser(offerData.finderId);
 
       return {
         id: data.id,
