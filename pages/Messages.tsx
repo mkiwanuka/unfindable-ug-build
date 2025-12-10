@@ -398,7 +398,7 @@ export const Messages: React.FC = () => {
       </div>
 
       {/* Panel B - Chat Window */}
-      <div className={`flex-1 flex flex-col ${
+      <div className={`flex-1 flex flex-col min-w-0 overflow-hidden ${
         showChatOnMobile ? 'flex' : 'hidden md:flex'
       }`}>
         {activeChat ? (
@@ -446,7 +446,7 @@ export const Messages: React.FC = () => {
             <TypingIndicator typingUsers={typingUsers} />
 
             {/* Input */}
-            <div className="p-3 bg-white border-t border-gray-200">
+            <div className="p-3 bg-white border-t border-gray-200 w-full">
               {/* Selected file preview */}
               {selectedFile && (
                 <div className="flex items-center gap-2 mb-2 p-2 bg-gray-100 rounded-lg">
@@ -462,7 +462,7 @@ export const Messages: React.FC = () => {
               {uploadError && (
                 <p className="text-red-500 text-xs mb-2">{uploadError}</p>
               )}
-              <div className="flex items-center space-x-2 bg-gray-100 rounded-full px-3 py-2">
+              <div className="flex items-center space-x-2 bg-gray-100 rounded-full px-3 py-2 w-full overflow-hidden">
                 <input
                   type="file"
                   ref={fileInputRef}
