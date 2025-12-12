@@ -97,12 +97,12 @@ export const Home: React.FC<HomeProps> = ({ featuredRequests }) => {
       {/* SECTION 1: Hero */}
       <section className="bg-deepBlue relative overflow-hidden">
         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 md:py-32 relative z-10 text-center">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 sm:mb-6 leading-tight">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-24 relative z-10 text-center">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6 sm:mb-8 leading-tight">
             Stop Searching. Just Post It —<br className="hidden sm:block" />
             <span className="text-softTeal">We'll Find It For You.</span>
           </h1>
-          <p className="text-sm sm:text-base md:text-lg text-gray-300 mb-8 sm:mb-10 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-sm sm:text-base md:text-lg text-gray-300 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed">
             Describe anything you want, set your budget, and let Finders compete to deliver it.
             <br className="hidden sm:block" />
             <span className="text-gray-400">Fast responses. No endless browsing.</span>
@@ -114,7 +114,7 @@ export const Home: React.FC<HomeProps> = ({ featuredRequests }) => {
             >
               <Plus className="mr-2 h-5 w-5 sm:h-6 sm:w-6" /> Post a Request
             </Link>
-            <p className="text-gray-400 mt-4 text-sm">
+            <p className="text-gray-400 mt-5 sm:mt-6 text-sm">
               Get paid to find things — <Link to="/search" className="text-softTeal hover:underline font-medium">Browse open requests →</Link>
             </p>
           </div>
