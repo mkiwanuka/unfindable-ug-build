@@ -296,6 +296,48 @@ export type Database = {
           },
         ]
       }
+      premium_payments: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          created_at: string | null
+          currency: string
+          flutterwave_tx_id: string | null
+          flutterwave_tx_ref: string
+          id: string
+          payment_type: string | null
+          phone_number: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          completed_at?: string | null
+          created_at?: string | null
+          currency?: string
+          flutterwave_tx_id?: string | null
+          flutterwave_tx_ref: string
+          id?: string
+          payment_type?: string | null
+          phone_number?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          created_at?: string | null
+          currency?: string
+          flutterwave_tx_id?: string | null
+          flutterwave_tx_ref?: string
+          id?: string
+          payment_type?: string | null
+          phone_number?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar: string | null
@@ -304,9 +346,11 @@ export type Database = {
           completed_tasks: number | null
           created_at: string | null
           id: string
+          is_premium: boolean | null
           joined_date: string | null
           location: string | null
           name: string
+          premium_upgraded_at: string | null
           rating: number | null
           response_time: string | null
           skills: string[] | null
@@ -320,9 +364,11 @@ export type Database = {
           completed_tasks?: number | null
           created_at?: string | null
           id: string
+          is_premium?: boolean | null
           joined_date?: string | null
           location?: string | null
           name: string
+          premium_upgraded_at?: string | null
           rating?: number | null
           response_time?: string | null
           skills?: string[] | null
@@ -336,9 +382,11 @@ export type Database = {
           completed_tasks?: number | null
           created_at?: string | null
           id?: string
+          is_premium?: boolean | null
           joined_date?: string | null
           location?: string | null
           name?: string
+          premium_upgraded_at?: string | null
           rating?: number | null
           response_time?: string | null
           skills?: string[] | null
@@ -584,6 +632,7 @@ export type Database = {
           completed_tasks: number | null
           created_at: string | null
           id: string | null
+          is_premium: boolean | null
           joined_date: string | null
           location: string | null
           name: string | null
@@ -599,6 +648,7 @@ export type Database = {
           completed_tasks?: number | null
           created_at?: string | null
           id?: string | null
+          is_premium?: boolean | null
           joined_date?: string | null
           location?: string | null
           name?: string | null
@@ -614,6 +664,7 @@ export type Database = {
           completed_tasks?: number | null
           created_at?: string | null
           id?: string | null
+          is_premium?: boolean | null
           joined_date?: string | null
           location?: string | null
           name?: string | null
@@ -627,6 +678,14 @@ export type Database = {
       }
     }
     Functions: {
+      check_finder_can_place_offer: {
+        Args: { p_finder_id: string }
+        Returns: {
+          accepted_count: number
+          can_place: boolean
+          is_premium: boolean
+        }[]
+      }
       get_conversations_with_last_message: {
         Args: { p_user_id: string }
         Returns: {
@@ -703,6 +762,10 @@ export type Database = {
           _response_time?: string
           _skills?: string[]
         }
+        Returns: undefined
+      }
+      upgrade_to_premium: {
+        Args: { p_tx_ref: string; p_user_id: string }
         Returns: undefined
       }
     }
