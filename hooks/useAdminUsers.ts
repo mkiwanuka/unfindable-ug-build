@@ -14,42 +14,30 @@ export interface AdminUser {
 }
 
 async function fetchAdminUsers(): Promise<AdminUser[]> {
-  // Fetch all profiles
-  const { data: profiles, error: profilesError } = await supabase
-    .from('profiles')
-    .select('id, name, avatar, verified, joined_date, completed_tasks, rating')
-    .order('joined_date', { ascending: false });
+  // Use secure RPC function that enforces admin check server-side
+  const { data, error } = await supabase.rpc('admin_get_all_users');
 
-  if (profilesError) throw profilesError;
+  if (error) throw error;
 
-  // Fetch all user roles
-  const { data: roles, error: rolesError } = await supabase
-    .from('user_roles')
-    .select('user_id, role');
-
-  if (rolesError) throw rolesError;
-
-  // Fetch user emails from auth (we'll use a workaround since we can't directly query auth.users)
-  // For now, we'll show profile data without email - email would need an edge function or RPC
-  
-  // Map roles to users
-  const roleMap = new Map<string, string[]>();
-  roles?.forEach(r => {
-    const existing = roleMap.get(r.user_id) || [];
-    existing.push(r.role);
-    roleMap.set(r.user_id, existing);
-  });
-
-  return (profiles || []).map(profile => ({
-    id: profile.id,
-    name: profile.name || 'Unknown',
-    email: '', // Would need edge function to get from auth.users
-    avatar: profile.avatar || '',
-    roles: roleMap.get(profile.id) || ['guest'],
-    verified: profile.verified || false,
-    joinedDate: profile.joined_date || '',
-    completedTasks: profile.completed_tasks || 0,
-    rating: profile.rating,
+  return (data || []).map((user: {
+    id: string;
+    name: string | null;
+    avatar: string | null;
+    verified: boolean | null;
+    joined_date: string | null;
+    completed_tasks: number | null;
+    rating: number | null;
+    roles: string[];
+  }) => ({
+    id: user.id,
+    name: user.name || 'Unknown',
+    email: '', // Email not exposed for privacy
+    avatar: user.avatar || '',
+    roles: user.roles || ['guest'],
+    verified: user.verified || false,
+    joinedDate: user.joined_date || '',
+    completedTasks: user.completed_tasks || 0,
+    rating: user.rating,
   }));
 }
 
