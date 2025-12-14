@@ -11,6 +11,24 @@ export const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'requests' | 'settings'>('overview');
   const [isVerifyingAdmin, setIsVerifyingAdmin] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userFilter, setUserFilter] = useState<string>('');
+  const [requestFilter, setRequestFilter] = useState<string>('');
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editingRequestId, setEditingRequestId] = useState<string | null>(null);
+
+  const navigate = useNavigate();
+
+  // Data hooks - must be called unconditionally (Rules of Hooks)
+  const { data: stats, isLoading: statsLoading, error: statsError } = useAdminStats();
+  const { data: chartData, isLoading: chartLoading } = useAdminChartData();
+  const { data: users, isLoading: usersLoading, error: usersError } = useAdminUsers();
+  const { data: requests, isLoading: requestsLoading, error: requestsError } = useAdminRequests();
+
+  // Mutation hooks
+  const deleteUser = useDeleteUser();
+  const updateUserRole = useUpdateUserRole();
+  const deleteRequest = useDeleteRequest();
+  const updateRequestStatus = useUpdateRequestStatus();
 
   // Server-side admin verification on mount
   useEffect(() => {
@@ -46,13 +64,6 @@ export const AdminDashboard: React.FC = () => {
     verifyAdminRole();
   }, []);
 
-  const [userFilter, setUserFilter] = useState<string>('');
-  const [requestFilter, setRequestFilter] = useState<string>('');
-  const [editingUserId, setEditingUserId] = useState<string | null>(null);
-  const [editingRequestId, setEditingRequestId] = useState<string | null>(null);
-
-  const navigate = useNavigate();
-
   // Show loading state while verifying admin role
   if (isVerifyingAdmin) {
     return (
@@ -83,18 +94,6 @@ export const AdminDashboard: React.FC = () => {
       </div>
     );
   }
-
-  // Data hooks
-  const { data: stats, isLoading: statsLoading, error: statsError } = useAdminStats();
-  const { data: chartData, isLoading: chartLoading } = useAdminChartData();
-  const { data: users, isLoading: usersLoading, error: usersError } = useAdminUsers();
-  const { data: requests, isLoading: requestsLoading, error: requestsError } = useAdminRequests();
-
-  // Mutation hooks
-  const deleteUser = useDeleteUser();
-  const updateUserRole = useUpdateUserRole();
-  const deleteRequest = useDeleteRequest();
-  const updateRequestStatus = useUpdateRequestStatus();
 
   const handleDeleteUser = async (userId: string) => {
     if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
