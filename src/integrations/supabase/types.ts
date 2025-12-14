@@ -678,6 +678,19 @@ export type Database = {
       }
     }
     Functions: {
+      admin_get_all_users: {
+        Args: never
+        Returns: {
+          avatar: string
+          completed_tasks: number
+          id: string
+          joined_date: string
+          name: string
+          rating: number
+          roles: string[]
+          verified: boolean
+        }[]
+      }
       check_finder_can_place_offer: {
         Args: { p_finder_id: string }
         Returns: {
