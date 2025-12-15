@@ -173,6 +173,58 @@ export const Home: React.FC<HomeProps> = ({ featuredRequests }) => {
         </div>
       </section>
 
+      {/* SECTION 2.5: Live Open Requests */}
+      {featuredRequests.length > 0 && (
+        <section className="py-12 sm:py-16 bg-offWhite">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-deepBlue mb-2 text-center">
+              🔍 Latest Open Requests
+            </h2>
+            <p className="text-gray-500 text-center mb-8 text-sm">Real requests from people near you</p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {featuredRequests.slice(0, 6).map((request) => (
+                <Link 
+                  key={request.id} 
+                  to={`/request/${request.id}`}
+                  className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-lg transition-all hover:-translate-y-0.5"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <span className="bg-softTeal/10 text-softTeal text-xs font-medium px-2.5 py-1 rounded-full">
+                      {request.category}
+                    </span>
+                    <span className="text-xs text-gray-400 flex items-center">
+                      <Clock className="h-3 w-3 mr-1" />
+                      {new Date(request.createdAt || '').toLocaleDateString()}
+                    </span>
+                  </div>
+                  <h3 className="font-semibold text-deepBlue mb-2 line-clamp-2">{request.title}</h3>
+                  <p className="text-gray-500 text-sm mb-3 line-clamp-2">{request.description}</p>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-deepBlue font-medium">
+                      UGX {request.budgetMin?.toLocaleString()} - {request.budgetMax?.toLocaleString()}
+                    </span>
+                    <span className="text-gray-400 flex items-center text-xs">
+                      <MapPin className="h-3 w-3 mr-1" />
+                      {request.location}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+            
+            <div className="text-center mt-8">
+              <Link 
+                to="/search"
+                className="inline-flex items-center text-softTeal font-medium hover:underline"
+              >
+                View All Open Requests <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* SECTION 3: Why Seekers Love Us */}
       <section className="py-12 sm:py-16 bg-offWhite">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
