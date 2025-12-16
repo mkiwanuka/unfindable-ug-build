@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { User } from '../types';
 import { requestCreateSchema } from '../lib/schemas';
+import { useRequestImageUpload } from '../hooks/useRequestImageUpload';
 
 interface PostRequestProps {
   currentUser: User;
@@ -32,6 +33,7 @@ export const PostRequest: React.FC<PostRequestProps> = ({ currentUser, onPostSuc
   const [isSubmitting, setIsSubmitting] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
   const fileUploadRef = useRef<HTMLInputElement>(null);
+  const { uploadImage, deleteImage, isUploading, uploadError } = useRequestImageUpload(currentUser?.id || null);
 
   // Comprehensive Form State
   const [formData, setFormData] = useState({
@@ -96,19 +98,18 @@ export const PostRequest: React.FC<PostRequestProps> = ({ currentUser, onPostSuc
     }, 1000);
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setFormData(prev => ({
-            ...prev,
-            images: [...prev.images, event.target!.result as string]
-          }));
-        }
-      };
-      reader.readAsDataURL(file);
+      const result = await uploadImage(file);
+      if (result) {
+        setFormData(prev => ({
+          ...prev,
+          images: [...prev.images, result.url]
+        }));
+      } else if (uploadError) {
+        alert(uploadError);
+      }
     }
   };
 
@@ -266,12 +267,21 @@ export const PostRequest: React.FC<PostRequestProps> = ({ currentUser, onPostSuc
       <div>
          <label className="block text-sm font-medium text-gray-700 mb-1">Photos (Optional)</label>
          <div 
-            onClick={() => fileUploadRef.current?.click()}
-            className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:bg-gray-50 cursor-pointer transition-colors bg-[#F3F4F6]"
+            onClick={() => !isUploading && fileUploadRef.current?.click()}
+            className={`border-2 border-dashed border-gray-300 rounded-xl p-8 text-center transition-colors bg-[#F3F4F6] ${isUploading ? 'opacity-50 cursor-wait' : 'hover:bg-gray-50 cursor-pointer'}`}
          >
-           <UploadCloud className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-           <p className="text-gray-600">Drag and drop images here, or <span className="text-softTeal font-semibold">browse</span></p>
-           <p className="text-xs text-gray-400 mt-1">PNG, JPG up to 5MB</p>
+           {isUploading ? (
+             <>
+               <Loader2 className="h-10 w-10 text-softTeal mx-auto mb-3 animate-spin" />
+               <p className="text-gray-600">Uploading image...</p>
+             </>
+           ) : (
+             <>
+               <UploadCloud className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+               <p className="text-gray-600">Drag and drop images here, or <span className="text-softTeal font-semibold">browse</span></p>
+               <p className="text-xs text-gray-400 mt-1">PNG, JPG up to 5MB</p>
+             </>
+           )}
            <input 
               type="file" 
               ref={fileUploadRef}
