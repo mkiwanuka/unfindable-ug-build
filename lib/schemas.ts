@@ -31,7 +31,7 @@ export const requestCreateSchema = z.object({
   budgetMax: z.number().min(0, 'Budget must be positive'),
   deadline: z.string().min(1, 'Deadline is required'),
   location: z.string().min(1, 'Location is required').max(255, 'Location too long'),
-  imageUrl: z.string().max(100000, 'Image data too large').optional().nullable(),
+  imageUrl: z.string().url('Invalid image URL').max(2000, 'Image URL too long').optional().nullable(),
 });
 
 // Offer validation
