@@ -497,16 +497,16 @@ export const PostRequest: React.FC<PostRequestProps> = ({ currentUser, onPostSuc
     <div className="space-y-8">
         <h2 className="text-2xl font-bold text-deepBlue border-b border-gray-200 pb-4">Review Request</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-4">
             <div className="col-span-2">
                 <h3 className="text-xs font-bold text-gray-500 uppercase mb-1">Title</h3>
                 <p className="text-xl font-bold text-gray-900">{formData.title}</p>
             </div>
-            <div>
+            <div className="col-span-2 sm:col-span-1">
                 <h3 className="text-xs font-bold text-gray-500 uppercase mb-1">Category</h3>
                 <p className="text-gray-900 bg-blue-50 inline-block px-2 py-1 rounded text-sm">{formData.category}</p>
             </div>
-            <div>
+            <div className="col-span-2 sm:col-span-1">
                 <h3 className="text-xs font-bold text-gray-500 uppercase mb-1">Condition & Urgency</h3>
                 <p className="text-gray-900">{formData.condition} • {formData.urgency}</p>
             </div>
@@ -543,18 +543,18 @@ export const PostRequest: React.FC<PostRequestProps> = ({ currentUser, onPostSuc
                 </div>
             </div>
 
-            <div>
+            <div className="col-span-2 sm:col-span-1">
                 <h3 className="text-xs font-bold text-gray-500 uppercase mb-1">Budget</h3>
                 <p className="text-gray-900 font-bold text-lg">
                     {formData.budgetType === 'fixed' ? `$${formData.budgetFixed}` : `$${formData.budgetMin} - $${formData.budgetMax}`}
                     {formData.isNegotiable && <span className="text-xs font-normal text-gray-500 ml-2">(Negotiable)</span>}
                 </p>
             </div>
-            <div>
+            <div className="col-span-2 sm:col-span-1">
                 <h3 className="text-xs font-bold text-gray-500 uppercase mb-1">Location</h3>
                 <p className="text-gray-900 flex items-center"><MapPin className="h-3 w-3 mr-1 text-gray-400" /> {formData.location}</p>
             </div>
-             <div>
+            <div className="col-span-2 sm:col-span-1">
                 <h3 className="text-xs font-bold text-gray-500 uppercase mb-1">Visibility</h3>
                 <p className="text-gray-900 capitalize">{formData.visibility.replace('-', ' ')}</p>
             </div>
