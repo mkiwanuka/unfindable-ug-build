@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { List, useDynamicRowHeight, useListRef } from 'react-window';
 import { MessageRow } from './MessageRow';
 import { Loader2 } from 'lucide-react';
+import { ResizeObserverProvider } from '../contexts/ResizeObserverContext';
 
 interface Message {
   id: string;
@@ -137,47 +138,49 @@ export const VirtualizedMessages: React.FC<VirtualizedMessagesProps> = ({
   }
 
   return (
-    <div className="h-full w-full flex flex-col">
-      {/* Load More Button */}
-      {hasMore && (
-        <div className="flex justify-center py-2 bg-muted/50 flex-shrink-0">
-          <button
-            onClick={onLoadMore}
-            disabled={loadingMore}
-            className="text-sm text-primary hover:text-primary/80 disabled:opacity-50 flex items-center gap-2"
-          >
-            {loadingMore ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading...
-              </>
-            ) : (
-              'Load earlier messages'
-            )}
-          </button>
-        </div>
-      )}
-      
-      {/* Virtualized Message List */}
-      <div className="flex-1 relative min-h-0 overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden">
-          <List
-            listRef={listRef}
-            rowCount={messages.length}
-            rowHeight={dynamicRowHeight}
-            rowComponent={MessageRow}
-            rowProps={{
-              messages,
-              currentUserId,
-              reactions,
-              onReactionChange: onReactionChange || (() => {}),
-              onHeightChange: handleHeightChange,
-            }}
-            overscanCount={5}
-            onRowsRendered={handleRowsRendered}
-          />
+    <ResizeObserverProvider>
+      <div className="h-full w-full flex flex-col">
+        {/* Load More Button */}
+        {hasMore && (
+          <div className="flex justify-center py-2 bg-muted/50 flex-shrink-0">
+            <button
+              onClick={onLoadMore}
+              disabled={loadingMore}
+              className="text-sm text-primary hover:text-primary/80 disabled:opacity-50 flex items-center gap-2"
+            >
+              {loadingMore ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                'Load earlier messages'
+              )}
+            </button>
+          </div>
+        )}
+        
+        {/* Virtualized Message List */}
+        <div className="flex-1 relative min-h-0 overflow-hidden">
+          <div className="absolute inset-0 overflow-hidden">
+            <List
+              listRef={listRef}
+              rowCount={messages.length}
+              rowHeight={dynamicRowHeight}
+              rowComponent={MessageRow}
+              rowProps={{
+                messages,
+                currentUserId,
+                reactions,
+                onReactionChange: onReactionChange || (() => {}),
+                onHeightChange: handleHeightChange,
+              }}
+              overscanCount={5}
+              onRowsRendered={handleRowsRendered}
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </ResizeObserverProvider>
   );
 };

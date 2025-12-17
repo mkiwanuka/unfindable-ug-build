@@ -74,20 +74,16 @@ export const Messages: React.FC = () => {
   // File upload hook
   const { uploadFile, isUploading, uploadError, clearError } = useFileUpload(currentUserId);
 
-  // Get current user
+  // Get current user - optimized: single RPC call instead of 2 queries
   useEffect(() => {
     const getCurrentUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setCurrentUserId(user.id);
-        // Fetch user name for typing indicator
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('name')
-          .eq('id', user.id)
-          .single();
-        if (profile) {
-          setCurrentUserName(profile.name);
+        // Use existing RPC that fetches profile + role in single query
+        const { data, error } = await supabase.rpc('get_user_with_role', { p_user_id: user.id });
+        if (!error && data && data.length > 0) {
+          setCurrentUserName(data[0].name);
         }
       }
     };
@@ -197,9 +193,16 @@ export const Messages: React.FC = () => {
       }
     });
 
-    // Refetch messages when channel becomes ready (catches missed messages during connection)
+    // Only refetch on ready if we were disconnected for a while
+    // This prevents unnecessary refetches while allowing recovery from connection issues
+    let lastReadyTime = Date.now();
     const unsubReady = realtimeManager.onReady(() => {
-      fetchMessages();
+      const timeSinceLastReady = Date.now() - lastReadyTime;
+      // Only refetch if more than 30 seconds since last ready (reconnection scenario)
+      if (timeSinceLastReady > 30000) {
+        fetchMessages();
+      }
+      lastReadyTime = Date.now();
     });
 
     return () => {
@@ -209,12 +212,30 @@ export const Messages: React.FC = () => {
     };
   }, [selectedChatId, currentUserId, fetchMessages, addMessage, updateMessage]);
 
-  // Window focus handler - refetch messages when tab regains focus
+  // Window focus handler - only refetch if tab was inactive for > 60 seconds
+  const lastActivityRef = useRef<number>(Date.now());
+  
+  useEffect(() => {
+    // Track activity
+    const updateActivity = () => { lastActivityRef.current = Date.now(); };
+    window.addEventListener('mousemove', updateActivity, { passive: true });
+    window.addEventListener('keydown', updateActivity, { passive: true });
+    
+    return () => {
+      window.removeEventListener('mousemove', updateActivity);
+      window.removeEventListener('keydown', updateActivity);
+    };
+  }, []);
+  
   useEffect(() => {
     if (!selectedChatId) return;
 
     const handleFocus = () => {
-      fetchMessages();
+      const inactiveMs = Date.now() - lastActivityRef.current;
+      // Only refetch if inactive for more than 60 seconds
+      if (inactiveMs > 60000) {
+        fetchMessages();
+      }
       markMessagesAsRead(selectedChatId);
     };
 

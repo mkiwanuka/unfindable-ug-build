@@ -2,6 +2,7 @@ import React, { CSSProperties, useRef, useEffect } from 'react';
 import { Check, CheckCheck } from 'lucide-react';
 import { MessageReactions } from './MessageReactions';
 import { FileAttachment } from './FileAttachment';
+import { useSharedResizeObserver } from '../contexts/ResizeObserverContext';
 
 interface Message {
   id: string;
@@ -51,19 +52,21 @@ export const MessageRow: React.FC<MessageRowProps> = ({
 }) => {
   const rowRef = useRef<HTMLDivElement>(null);
   const msg = messages[index];
+  
+  // Use shared ResizeObserver instead of creating one per message
+  const { observe, unobserve } = useSharedResizeObserver();
 
-  // Report height changes for dynamic sizing
+  // Report height changes using shared observer
   useEffect(() => {
     if (rowRef.current && onHeightChange) {
-      const resizeObserver = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          onHeightChange(index, entry.contentRect.height);
+      observe(rowRef.current, index, onHeightChange);
+      return () => {
+        if (rowRef.current) {
+          unobserve(rowRef.current);
         }
-      });
-      resizeObserver.observe(rowRef.current);
-      return () => resizeObserver.disconnect();
+      };
     }
-  }, [index, onHeightChange]);
+  }, [index, onHeightChange, observe, unobserve]);
 
   if (!msg) return null;
 
