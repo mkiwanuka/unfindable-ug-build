@@ -21,6 +21,7 @@ export function useMessages(conversationId: string | null) {
   const [isLoading, setIsLoading] = useState(false);
 
   // Fetch initial messages (latest PAGE_SIZE)
+  // Optimized: Use PAGE_SIZE + 1 heuristic instead of expensive count: 'exact'
   const fetchMessages = useCallback(async () => {
     if (!conversationId) {
       setMessages([]);
@@ -29,21 +30,22 @@ export function useMessages(conversationId: string | null) {
 
     setIsLoading(true);
     try {
-      const { data, error, count } = await supabase
+      const { data, error } = await supabase
         .from('messages')
-        .select('*', { count: 'exact' })
+        .select('*')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: false })
-        .limit(PAGE_SIZE);
+        .limit(PAGE_SIZE + 1); // Fetch one extra to detect if more exist
 
       if (error) throw error;
 
-      // Reverse to show oldest first in UI
-      const sortedMessages = (data || []).reverse();
-      setMessages(sortedMessages);
+      // Check if there are more messages (we fetched PAGE_SIZE + 1)
+      const hasMoreMessages = (data || []).length > PAGE_SIZE;
       
-      // Check if there are more messages to load
-      setHasMore((count || 0) > PAGE_SIZE);
+      // Only keep PAGE_SIZE messages, reverse to show oldest first
+      const sortedMessages = (data || []).slice(0, PAGE_SIZE).reverse();
+      setMessages(sortedMessages);
+      setHasMore(hasMoreMessages);
     } catch (error) {
       console.error('Error fetching messages:', error);
     } finally {
