@@ -1,58 +1,79 @@
 import { supabase } from '../src/integrations/supabase/client';
 import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
-type TableName = 'requests' | 'messages' | 'notifications' | 'offers';
+// Global subscription types (for notifications, requests, offers)
+type GlobalTableName = 'requests' | 'notifications' | 'offers' | 'messages';
 type EventType = 'INSERT' | 'UPDATE' | 'DELETE' | '*';
-type Callback = (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void;
+type GlobalCallback = (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void;
 
-interface Subscription {
-  table: TableName;
+interface GlobalSubscription {
+  table: GlobalTableName;
   event: EventType;
-  callback: Callback;
+  callback: GlobalCallback;
 }
 
+// Conversation-specific types (for messages)
+type MessageHandler = (msg: any) => void;
+type ReceiptHandler = (msg: any) => void;
+type TypingHandler = (payload: { userId: string; name: string; typing: boolean }) => void;
+
+interface ConversationHandlers {
+  onMessage?: MessageHandler;
+  onReceipt?: ReceiptHandler;
+  onTyping?: TypingHandler;
+}
+
+interface ConversationChannelEntry {
+  channel: RealtimeChannel;
+  refCount: number;
+  handlers: ConversationHandlers;
+}
+
+/**
+ * Hybrid RealtimeManager
+ * 
+ * Supports two patterns:
+ * 1. Global subscriptions for app-wide tables (notifications, requests, offers)
+ * 2. Conversation-specific subscriptions for messages (filtered at server level)
+ */
 class RealtimeManager {
-  private channel: RealtimeChannel | null = null;
-  private subscriptions: Set<Subscription> = new Set();
-  private initialized = false;
-  private isReady = false;
-  private readyCallbacks: (() => void)[] = []; // One-shot callbacks for waitForReady()
-  private readyListeners: Set<() => void> = new Set(); // Persistent listeners for onReady()
-  private reconnectTimer: number | null = null;
+  // Global channel (for notifications, requests, offers)
+  private globalChannel: RealtimeChannel | null = null;
+  private globalSubscriptions: Set<GlobalSubscription> = new Set();
+  private globalInitialized = false;
+  private globalReady = false;
+  private readyCallbacks: (() => void)[] = [];
+  private readyListeners: Set<() => void> = new Set();
   
-  // Health check properties
+  // Conversation-specific channels (for messages)
+  private conversationChannels = new Map<string, ConversationChannelEntry>();
+
+  // Health check
   public lastEventTime = Date.now();
   private healthCheckInterval: number | null = null;
 
   get isInitialized(): boolean {
-    return this.initialized;
+    return this.globalInitialized;
   }
 
+  // ==================== GLOBAL CHANNEL (notifications, requests, offers) ====================
+
   init() {
-    // If already initialized with an active channel, don't reinitialize
-    if (this.initialized && this.channel) {
+    if (this.globalInitialized && this.globalChannel) {
       return;
     }
     
-    this.initialized = true;
-    this.isReady = false;
+    this.globalInitialized = true;
+    this.globalReady = false;
 
-    this.channel = supabase
+    this.globalChannel = supabase
       .channel('global-realtime')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'requests' },
         (payload) => {
           this.lastEventTime = Date.now();
-          this.emit('requests', payload);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'messages' },
-        (payload) => {
-          this.lastEventTime = Date.now();
-          this.emit('messages', payload);
+          this.emitGlobal('requests', payload);
         }
       )
       .on(
@@ -60,7 +81,7 @@ class RealtimeManager {
         { event: '*', schema: 'public', table: 'notifications' },
         (payload) => {
           this.lastEventTime = Date.now();
-          this.emit('notifications', payload);
+          this.emitGlobal('notifications', payload);
         }
       )
       .on(
@@ -68,114 +89,102 @@ class RealtimeManager {
         { event: '*', schema: 'public', table: 'offers' },
         (payload) => {
           this.lastEventTime = Date.now();
-          this.emit('offers', payload);
+          this.emitGlobal('offers', payload);
         }
       )
-      .subscribe((status, err) => {
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'messages' },
+        (payload) => {
+          this.lastEventTime = Date.now();
+          this.emitGlobal('messages', payload);
+        }
+      )
+      .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          this.isReady = true;
+          this.globalReady = true;
           this.lastEventTime = Date.now();
           
-          // Execute one-shot callbacks (for waitForReady() promises)
+          // Execute one-shot callbacks
           this.readyCallbacks.forEach(cb => {
-            try { 
-              cb(); 
-            } catch (e) { 
-              console.error('[RealtimeManager] Ready callback error:', e); 
-            }
+            try { cb(); } catch (e) { console.error('[RealtimeManager] Ready callback error:', e); }
           });
           this.readyCallbacks = [];
           
-          // Execute persistent listeners (for badge hooks - fires on EVERY reconnect)
+          // Execute persistent listeners
           this.readyListeners.forEach(cb => {
-            try { 
-              cb(); 
-            } catch (e) { 
-              console.error('[RealtimeManager] Ready listener error:', e); 
-            }
+            try { cb(); } catch (e) { console.error('[RealtimeManager] Ready listener error:', e); }
           });
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          this.isReady = false;
-          this.forceReconnect();
+          this.globalReady = false;
+          this.forceReconnectGlobal();
         }
       });
 
-    // Start health check
     this.startHealthCheck();
-
-    // Reconnect on tab visibility change
     document.addEventListener('visibilitychange', this.handleVisibilityChange);
   }
 
   private startHealthCheck() {
     if (this.healthCheckInterval) return;
-
     this.healthCheckInterval = window.setInterval(() => {
-      const inactive = Date.now() - this.lastEventTime;
-
-      if (inactive > 60000) {
-        this.forceReconnect();
+      if (Date.now() - this.lastEventTime > 60000) {
+        this.forceReconnectGlobal();
       }
     }, 15000);
   }
 
   private handleVisibilityChange = () => {
     if (document.visibilityState === 'visible') {
-      const inactive = Date.now() - this.lastEventTime;
-
-      if (inactive > 30000) {
-        this.forceReconnect();
+      if (Date.now() - this.lastEventTime > 30000) {
+        this.forceReconnectGlobal();
       }
     }
   };
 
-  private forceReconnect() {
-    if (this.channel) {
-      supabase.removeChannel(this.channel);
+  private forceReconnectGlobal() {
+    if (this.globalChannel) {
+      supabase.removeChannel(this.globalChannel);
     }
-
-    this.channel = null;
-    this.initialized = false;
-    this.isReady = false;
-
-    // Small delay before reinitializing
+    this.globalChannel = null;
+    this.globalInitialized = false;
+    this.globalReady = false;
     setTimeout(() => this.init(), 300);
   }
 
-  private emit(table: TableName, payload: RealtimePostgresChangesPayload<Record<string, unknown>>) {
+  private emitGlobal(table: GlobalTableName, payload: RealtimePostgresChangesPayload<Record<string, unknown>>) {
     this.lastEventTime = Date.now();
-    
     const eventType = payload.eventType as EventType;
     
-    this.subscriptions.forEach((sub) => {
+    this.globalSubscriptions.forEach((sub) => {
       if (sub.table === table && (sub.event === '*' || sub.event === eventType)) {
         try {
           sub.callback(payload);
         } catch (error) {
-          console.error('[RealtimeManager] Error in callback:', error);
+          console.error('[RealtimeManager] Error in global callback:', error);
         }
       }
     });
   }
 
-  subscribe(table: TableName, event: EventType, callback: Callback): () => void {
-    // Auto-initialize if not already done
-    if (!this.initialized) {
+  /**
+   * Subscribe to global table events (notifications, requests, offers)
+   */
+  subscribe(table: GlobalTableName, event: EventType, callback: GlobalCallback): () => void {
+    if (!this.globalInitialized) {
       this.init();
     }
 
-    const subscription: Subscription = { table, event, callback };
-    this.subscriptions.add(subscription);
+    const subscription: GlobalSubscription = { table, event, callback };
+    this.globalSubscriptions.add(subscription);
 
-    // Return unsubscribe function
     return () => {
-      this.subscriptions.delete(subscription);
+      this.globalSubscriptions.delete(subscription);
     };
   }
 
-  // Wait for channel to be ready
   waitForReady(): Promise<void> {
-    if (this.isReady) {
+    if (this.globalReady) {
       return Promise.resolve();
     }
     return new Promise(resolve => {
@@ -183,70 +192,207 @@ class RealtimeManager {
     });
   }
 
-  // Register persistent callback for when channel becomes ready (fires on every reconnect)
   onReady(callback: () => void): () => void {
-    // If already ready, execute immediately
-    if (this.isReady) {
+    if (this.globalReady) {
       callback();
     }
-    
-    // Always add to persistent listeners (for future reconnects)
     this.readyListeners.add(callback);
-    
-    // Return unsubscribe function
     return () => {
       this.readyListeners.delete(callback);
     };
   }
 
-  // Get current ready state
   getReadyState(): boolean {
-    return this.isReady;
+    return this.globalReady;
   }
 
-  // Only cleanup if there are no active subscriptions (prevents StrictMode issues)
-  cleanup() {
-    if (this.subscriptions.size > 0) {
+  // ==================== CONVERSATION CHANNELS (messages) ====================
+
+  private getConversationKey(conversationId: string): string {
+    return `conversation:${conversationId}`;
+  }
+
+  /**
+   * Subscribe to a conversation's realtime events (messages only)
+   * - INSERT events for new messages
+   * - UPDATE events for read receipts/status changes
+   * - Broadcast events for typing indicators
+   */
+  subscribeConversation(
+    conversationId: string,
+    handlers: ConversationHandlers
+  ): void {
+    const key = this.getConversationKey(conversationId);
+
+    // If already subscribed, increment ref count and update handlers
+    if (this.conversationChannels.has(key)) {
+      const entry = this.conversationChannels.get(key)!;
+      entry.refCount++;
+      entry.handlers = { ...entry.handlers, ...handlers };
       return;
     }
+
+    const channel = supabase.channel(key);
+
+    // New messages (INSERT) - filtered at server level
+    channel.on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${conversationId}`,
+      },
+      (payload) => {
+        this.lastEventTime = Date.now();
+        const entry = this.conversationChannels.get(key);
+        entry?.handlers.onMessage?.(payload.new);
+      }
+    );
+
+    // Read receipts / status updates (UPDATE)
+    channel.on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${conversationId}`,
+      },
+      (payload) => {
+        this.lastEventTime = Date.now();
+        const entry = this.conversationChannels.get(key);
+        entry?.handlers.onReceipt?.(payload.new);
+      }
+    );
+
+    // Typing indicator (broadcast - NO database writes)
+    channel.on(
+      'broadcast',
+      { event: 'typing' },
+      (payload) => {
+        const entry = this.conversationChannels.get(key);
+        entry?.handlers.onTyping?.(payload.payload as { userId: string; name: string; typing: boolean });
+      }
+    );
+
+    channel.subscribe((status) => {
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        console.error(`[RealtimeManager] Conversation channel ${key} error:`, status);
+        this.reconnectConversation(conversationId, handlers);
+      }
+    });
+
+    this.conversationChannels.set(key, { channel, refCount: 1, handlers });
+  }
+
+  /**
+   * Unsubscribe from a conversation (ref-counted)
+   */
+  async unsubscribeConversation(conversationId: string): Promise<void> {
+    const key = this.getConversationKey(conversationId);
+    const entry = this.conversationChannels.get(key);
     
-    if (this.channel) {
-      supabase.removeChannel(this.channel);
-      this.channel = null;
-      this.initialized = false;
-      this.isReady = false;
+    if (!entry) return;
+
+    entry.refCount--;
+    if (entry.refCount > 0) return;
+
+    try {
+      await entry.channel.unsubscribe();
+      supabase.removeChannel(entry.channel);
+    } catch (error) {
+      console.error(`[RealtimeManager] Error unsubscribing from ${key}:`, error);
+    }
+    
+    this.conversationChannels.delete(key);
+  }
+
+  private async reconnectConversation(conversationId: string, handlers: ConversationHandlers): Promise<void> {
+    const key = this.getConversationKey(conversationId);
+    const entry = this.conversationChannels.get(key);
+    
+    if (entry) {
+      try {
+        await entry.channel.unsubscribe();
+        supabase.removeChannel(entry.channel);
+      } catch (e) { /* ignore */ }
+      this.conversationChannels.delete(key);
+    }
+
+    setTimeout(() => {
+      this.subscribeConversation(conversationId, handlers);
+    }, 300);
+  }
+
+  /**
+   * Send typing indicator via broadcast (no database write)
+   */
+  sendTyping(conversationId: string, userId: string, name: string, typing: boolean): void {
+    const key = this.getConversationKey(conversationId);
+    const entry = this.conversationChannels.get(key);
+    
+    if (!entry) return;
+
+    entry.channel.send({
+      type: 'broadcast',
+      event: 'typing',
+      payload: { userId, name, typing },
+    });
+  }
+
+  isSubscribedToConversation(conversationId: string): boolean {
+    return this.conversationChannels.has(this.getConversationKey(conversationId));
+  }
+
+  // ==================== CLEANUP ====================
+
+  cleanup() {
+    if (this.globalSubscriptions.size > 0) return;
+    
+    if (this.globalChannel) {
+      supabase.removeChannel(this.globalChannel);
+      this.globalChannel = null;
+      this.globalInitialized = false;
+      this.globalReady = false;
     }
   }
 
-  // Force cleanup - only use when app is truly unmounting
   forceCleanup() {
-    // Clear health check interval
     if (this.healthCheckInterval) {
       clearInterval(this.healthCheckInterval);
       this.healthCheckInterval = null;
     }
     
-    // Remove visibility change listener
     document.removeEventListener('visibilitychange', this.handleVisibilityChange);
     
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
-    }
-    if (this.channel) {
-      supabase.removeChannel(this.channel);
-      this.channel = null;
-      this.initialized = false;
-      this.isReady = false;
-      this.subscriptions.clear();
+    // Cleanup global channel
+    if (this.globalChannel) {
+      supabase.removeChannel(this.globalChannel);
+      this.globalChannel = null;
+      this.globalInitialized = false;
+      this.globalReady = false;
+      this.globalSubscriptions.clear();
       this.readyCallbacks = [];
       this.readyListeners.clear();
     }
+
+    // Cleanup all conversation channels
+    for (const [, entry] of this.conversationChannels) {
+      try {
+        entry.channel.unsubscribe();
+        supabase.removeChannel(entry.channel);
+      } catch (e) { /* ignore */ }
+    }
+    this.conversationChannels.clear();
   }
 
-  // Get subscription count for debugging
   getSubscriptionCount(): number {
-    return this.subscriptions.size;
+    return this.globalSubscriptions.size;
+  }
+
+  getConversationChannelCount(): number {
+    return this.conversationChannels.size;
   }
 }
 
