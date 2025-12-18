@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, Paperclip, ArrowLeft, MessageSquare, Search, X, Loader2 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../src/integrations/supabase/client';
@@ -7,17 +7,19 @@ import { useConversations, useInvalidateConversations, ConversationWithDetails }
 import { VirtualizedMessages } from '../components/VirtualizedMessages';
 import { realtimeManager } from '../lib/realtimeManager';
 import { messageSchema } from '../lib/schemas';
-import { useTypingIndicator } from '../hooks/useTypingIndicator';
 import { TypingIndicator } from '../components/TypingIndicator';
 import { useMessageReactions } from '../hooks/useMessageReactions';
 import { useFileUpload } from '../hooks/useFileUpload';
 import { useMessages } from '../hooks/useMessages';
+import { MessageStatus } from '../stores/useMessageStore';
 
 interface Message {
   id: string;
   sender_id: string;
   content: string;
   created_at: string;
+  seq?: number;
+  status?: MessageStatus;
   read_at?: string | null;
   attachment_url?: string | null;
   attachment_type?: string | null;
@@ -90,12 +92,41 @@ export const Messages: React.FC = () => {
     getCurrentUser();
   }, []);
 
-  // Typing indicator
-  const { typingUsers, handleTypingStart, stopTyping } = useTypingIndicator(
-    selectedChatId,
-    currentUserId,
-    currentUserName
-  );
+  // Typing indicator state (integrated with conversation channel)
+  const [typingUsers, setTypingUsers] = useState<{ userId: string; name: string }[]>([]);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isTypingRef = useRef(false);
+
+  // Send typing indicator
+  const handleTypingStart = useCallback(() => {
+    if (!selectedChatId || !currentUserId || !currentUserName) return;
+    
+    if (!isTypingRef.current) {
+      isTypingRef.current = true;
+      realtimeManager.sendTyping(selectedChatId, currentUserId, currentUserName, true);
+    }
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Stop typing after 2 seconds of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      isTypingRef.current = false;
+      realtimeManager.sendTyping(selectedChatId, currentUserId, currentUserName, false);
+    }, 2000);
+  }, [selectedChatId, currentUserId, currentUserName]);
+
+  const stopTyping = useCallback(() => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    if (isTypingRef.current && selectedChatId && currentUserId && currentUserName) {
+      isTypingRef.current = false;
+      realtimeManager.sendTyping(selectedChatId, currentUserId, currentUserName, false);
+    }
+  }, [selectedChatId, currentUserId, currentUserName]);
 
   // Message reactions
   const { reactions, refetchReactions } = useMessageReactions(selectedChatId, currentUserId);
@@ -162,53 +193,57 @@ export const Messages: React.FC = () => {
     }
   };
 
-  // Fetch messages for selected conversation
-  // Fetch messages when conversation changes (uses paginated hook)
+  // Fetch messages and set up conversation-specific realtime subscription
   useEffect(() => {
-    if (!selectedChatId) return;
+    if (!selectedChatId || !currentUserId) return;
+
+    // Reset typing users when conversation changes
+    setTypingUsers([]);
 
     fetchMessages();
     markMessagesAsRead(selectedChatId);
 
-    // Use consolidated realtime manager for new messages
-    const unsubInsert = realtimeManager.subscribe('messages', 'INSERT', (payload) => {
-      const newMsg = payload.new as Message & { conversation_id: string };
-      
-      // Only add if it's for the current conversation
-      if (newMsg.conversation_id === selectedChatId) {
+    // Subscribe to conversation-specific channel (server-filtered, includes typing)
+    realtimeManager.subscribeConversation(selectedChatId, {
+      // New messages - direct state update, NO refetch
+      onMessage: (newMsg) => {
         addMessage(newMsg);
         
+        // Mark as read if not from current user
         if (newMsg.sender_id !== currentUserId) {
           markMessagesAsRead(selectedChatId);
         }
-      }
-    });
-
-    // Subscribe to message updates (for read receipts)
-    const unsubUpdate = realtimeManager.subscribe('messages', 'UPDATE', (payload) => {
-      const updatedMsg = payload.new as Message & { conversation_id: string };
+      },
       
-      if (updatedMsg.conversation_id === selectedChatId) {
-        updateMessage(updatedMsg.id, { read_at: updatedMsg.read_at });
-      }
-    });
-
-    // Only refetch on ready if we were disconnected for a while
-    // This prevents unnecessary refetches while allowing recovery from connection issues
-    let lastReadyTime = Date.now();
-    const unsubReady = realtimeManager.onReady(() => {
-      const timeSinceLastReady = Date.now() - lastReadyTime;
-      // Only refetch if more than 30 seconds since last ready (reconnection scenario)
-      if (timeSinceLastReady > 30000) {
-        fetchMessages();
-      }
-      lastReadyTime = Date.now();
+      // Read receipts / status updates
+      onReceipt: (updatedMsg) => {
+        updateMessage(updatedMsg.id, { 
+          read_at: updatedMsg.read_at,
+          status: updatedMsg.status 
+        });
+      },
+      
+      // Typing indicators (broadcast, no DB)
+      onTyping: (payload) => {
+        if (payload.userId !== currentUserId) {
+          setTypingUsers(prev => {
+            if (payload.typing) {
+              // Add user if not already typing
+              if (!prev.some(u => u.userId === payload.userId)) {
+                return [...prev, { userId: payload.userId, name: payload.name }];
+              }
+            } else {
+              // Remove user
+              return prev.filter(u => u.userId !== payload.userId);
+            }
+            return prev;
+          });
+        }
+      },
     });
 
     return () => {
-      unsubInsert();
-      unsubUpdate();
-      unsubReady();
+      realtimeManager.unsubscribeConversation(selectedChatId);
     };
   }, [selectedChatId, currentUserId, fetchMessages, addMessage, updateMessage]);
 
@@ -283,12 +318,13 @@ export const Messages: React.FC = () => {
       }
     }
     
-    // Optimistic update - add message immediately
+    // Optimistic update - add message immediately with 'sending' status
     const optimisticMessage: Message = {
       id: tempId,
       sender_id: currentUserId,
       content: messageContent,
       created_at: new Date().toISOString(),
+      status: 'sending',
       attachment_url: attachment?.url || null,
       attachment_type: attachment?.type || null,
       attachment_name: attachment?.name || null,
@@ -306,6 +342,7 @@ export const Messages: React.FC = () => {
           conversation_id: selectedChatId,
           sender_id: currentUserId,
           content: messageContent || null,
+          status: 'sent',
           attachment_url: attachment?.url || null,
           attachment_type: attachment?.type || null,
           attachment_name: attachment?.name || null,
@@ -315,14 +352,14 @@ export const Messages: React.FC = () => {
 
       if (error) throw error;
 
-      // Replace temp message with real one (has real ID)
+      // Replace temp message with real one (has real ID and 'sent' status)
       if (data) {
         replaceMessage(tempId, data);
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      // Remove optimistic message on error
-      removeMessage(tempId);
+      // Mark as failed instead of removing (allows retry)
+      updateMessage(tempId, { status: 'failed' });
       alert('Failed to send message. Please try again.');
     }
   };

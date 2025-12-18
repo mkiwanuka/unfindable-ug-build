@@ -134,6 +134,8 @@ export type Database = {
           id: string
           read_at: string | null
           sender_id: string
+          seq: number
+          status: string
         }
         Insert: {
           attachment_name?: string | null
@@ -145,6 +147,8 @@ export type Database = {
           id?: string
           read_at?: string | null
           sender_id: string
+          seq?: number
+          status?: string
         }
         Update: {
           attachment_name?: string | null
@@ -156,6 +160,8 @@ export type Database = {
           id?: string
           read_at?: string | null
           sender_id?: string
+          seq?: number
+          status?: string
         }
         Relationships: [
           {
