@@ -3,6 +3,7 @@ import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'reac
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
+import { ToastProvider } from './components/ToastProvider';
 import { Home } from './pages/Home';
 import { PostRequest } from './pages/PostRequest';
 import { Dashboard } from './pages/Dashboard';
@@ -33,6 +34,10 @@ import { useUnreadMessageCount } from './hooks/useUnreadMessageCount';
 import { useUnreadNotificationCount } from './hooks/useUnreadNotificationCount';
 import { useOpenRequests, useUpdateRequestInCache, useInvalidateRequests } from './hooks/useRequests';
 import { realtimeManager } from './lib/realtimeManager';
+import { initNotificationManager } from './lib/notificationManager';
+import { requestBrowserNotificationPermission } from './lib/browserNotifications';
+import { useMessageNotifications } from './hooks/useMessageNotifications';
+import { registerServiceWorker } from './lib/pushNotifications';
 
 // Create QueryClient with optimized defaults
 const queryClient = new QueryClient({
@@ -67,6 +72,26 @@ const AppContent: React.FC = () => {
   const invalidateRequests = useInvalidateRequests();
   
   const requests = requestsData?.data ?? [];
+
+  // Initialize notification systems
+  useEffect(() => {
+    initNotificationManager();
+    registerServiceWorker();
+  }, []);
+
+  // Request browser notification permission after user logs in
+  useEffect(() => {
+    if (user) {
+      // Delay slightly to not be intrusive on login
+      const timer = setTimeout(() => {
+        requestBrowserNotificationPermission();
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [user]);
+
+  // Listen for global message notifications
+  useMessageNotifications(user?.id ?? null);
 
   // Initialize realtime manager once on mount (singleton persists for app lifetime)
   useEffect(() => {
@@ -190,7 +215,9 @@ const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
-        <AppContent />
+        <ToastProvider>
+          <AppContent />
+        </ToastProvider>
       </Router>
     </QueryClientProvider>
   );

@@ -12,6 +12,7 @@ import { useMessageReactions } from '../hooks/useMessageReactions';
 import { useFileUpload } from '../hooks/useFileUpload';
 import { useMessages } from '../hooks/useMessages';
 import { MessageStatus } from '../stores/useMessageStore';
+import { setActiveConversation } from '../lib/notificationManager';
 
 interface Message {
   id: string;
@@ -192,6 +193,12 @@ export const Messages: React.FC = () => {
       console.error('Error marking messages as read:', error);
     }
   };
+
+  // Set active conversation for notification filtering
+  useEffect(() => {
+    setActiveConversation(selectedChatId);
+    return () => setActiveConversation(null);
+  }, [selectedChatId]);
 
   // Fetch messages and set up conversation-specific realtime subscription
   useEffect(() => {
