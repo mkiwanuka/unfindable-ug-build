@@ -467,11 +467,44 @@ export type Database = {
         }
         Relationships: []
       }
+      request_views: {
+        Row: {
+          id: string
+          request_id: string
+          viewed_at: string | null
+          viewer_id: string
+        }
+        Insert: {
+          id?: string
+          request_id: string
+          viewed_at?: string | null
+          viewer_id: string
+        }
+        Update: {
+          id?: string
+          request_id?: string
+          viewed_at?: string | null
+          viewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_views_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       requests: {
         Row: {
+          archived: boolean | null
+          archived_at: string | null
           budget_max: number
           budget_min: number
           category: string
+          completed_at: string | null
+          completed_by_id: string | null
           created_at: string | null
           deadline: string
           description: string
@@ -485,9 +518,13 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          archived?: boolean | null
+          archived_at?: string | null
           budget_max: number
           budget_min: number
           category: string
+          completed_at?: string | null
+          completed_by_id?: string | null
           created_at?: string | null
           deadline: string
           description: string
@@ -501,9 +538,13 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          archived?: boolean | null
+          archived_at?: string | null
           budget_max?: number
           budget_min?: number
           category?: string
+          completed_at?: string | null
+          completed_by_id?: string | null
           created_at?: string | null
           deadline?: string
           description?: string
