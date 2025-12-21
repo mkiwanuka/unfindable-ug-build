@@ -27,11 +27,22 @@ export interface Request {
   budgetMax: number;
   deadline: string;
   location: string;
+<<<<<<< HEAD
   status: 'Open' | 'In Progress' | 'Completed';
+=======
+  status: 'Open' | 'In Progress' | 'Completed' | 'Cancelled';
+>>>>>>> master-local/master
   offerCount: number;
   imageUrl: string;
   postedBy: User;
   createdAt: string;
+<<<<<<< HEAD
+=======
+  completedAt?: string;
+  completedById?: string;
+  archived: boolean;
+  archivedAt?: string;
+>>>>>>> master-local/master
 }
 
 export interface Offer {

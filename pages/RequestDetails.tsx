@@ -8,6 +8,10 @@ import { supabase } from '../src/integrations/supabase/client';
 import { ReportModal } from '../components/ReportModal';
 import { ReviewModal } from '../components/ReviewModal';
 import { useReviews } from '../hooks/useReviews';
+<<<<<<< HEAD
+=======
+import { useTrackRequestView } from '../hooks/useTrackRequestView';
+>>>>>>> master-local/master
 import { offerSchema } from '../lib/schemas';
 
 interface RequestDetailsProps {
@@ -33,6 +37,10 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
   const [reviewedOfferIds, setReviewedOfferIds] = useState<Set<string>>(new Set());
   
   const { createReview, checkCanReview } = useReviews();
+<<<<<<< HEAD
+=======
+  const { mutate: trackView } = useTrackRequestView();
+>>>>>>> master-local/master
 
   // Local state for request status to allow updates without backend
   const [localStatus, setLocalStatus] = useState(request?.status || 'Open');
@@ -41,6 +49,14 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loadingOffers, setLoadingOffers] = useState(false);
 
+<<<<<<< HEAD
+=======
+  // State for managing request actions
+  const [extendingDeadline, setExtendingDeadline] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [newDeadline, setNewDeadline] = useState('');
+
+>>>>>>> master-local/master
   // Fetch offers when request changes
   useEffect(() => {
     if (request) {
@@ -53,7 +69,11 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
   useEffect(() => {
     const checkReviews = async () => {
       if (!currentUser || !request || offers.length === 0) return;
+<<<<<<< HEAD
       
+=======
+
+>>>>>>> master-local/master
       const reviewedIds = new Set<string>();
       for (const offer of offers) {
         if (offer.status === 'Accepted') {
@@ -65,10 +85,28 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
       }
       setReviewedOfferIds(reviewedIds);
     };
+<<<<<<< HEAD
     
     checkReviews();
   }, [currentUser, request, offers, checkCanReview]);
 
+=======
+
+    checkReviews();
+  }, [currentUser, request, offers, checkCanReview]);
+
+  // Track request view for finders
+  useEffect(() => {
+    if (currentUser && request && currentUser.role === 'finder') {
+      // Non-blocking - track the view in background
+      trackView({
+        requestId: request.id,
+        userId: currentUser.id
+      });
+    }
+  }, [request?.id, currentUser?.id, currentUser?.role, trackView]);
+
+>>>>>>> master-local/master
   const handleOpenReviewModal = (offer: Offer) => {
     setReviewingOffer(offer);
     setShowReviewModal(true);
@@ -215,6 +253,7 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
   };
 
   const handleMarkCompleted = async (offerId: string) => {
+<<<<<<< HEAD
     if (!request) return;
     try {
       // Ensure the specific offer is accepted
@@ -227,6 +266,24 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
       await fetchOffers();
       onOfferChange?.();
       
+=======
+    if (!request || !currentUser) return;
+    try {
+      // Ensure the specific offer is accepted
+      await api.offers.update(offerId, { status: 'Accepted' });
+
+      // Update request status with completion metadata
+      await api.requests.update(request.id, {
+        status: 'Completed',
+        completedAt: new Date().toISOString(),
+        completedById: currentUser.id
+      });
+
+      // Refresh offers list and trigger parent refresh
+      await fetchOffers();
+      onOfferChange?.();
+
+>>>>>>> master-local/master
       // Update request status to Completed
       setLocalStatus('Completed');
     } catch (error) {
@@ -235,6 +292,60 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
     }
   };
 
+<<<<<<< HEAD
+=======
+  const handleExtendDeadline = async () => {
+    if (!request || !newDeadline) {
+      alert('Please select a new deadline');
+      return;
+    }
+
+    setExtendingDeadline(true);
+    try {
+      await api.requests.extendDeadline(request.id, newDeadline);
+      setNewDeadline('');
+      // Refresh the request in parent
+      onOfferChange?.();
+      alert('Deadline extended successfully!');
+    } catch (error) {
+      console.error('Error extending deadline:', error);
+      alert('Failed to extend deadline. Please try again.');
+    } finally {
+      setExtendingDeadline(false);
+    }
+  };
+
+  const handleCancelRequest = async () => {
+    if (!request) return;
+
+    const confirmed = window.confirm(
+      'Are you sure you want to cancel this request? It will be archived and hidden from your active requests.'
+    );
+
+    if (!confirmed) return;
+
+    setCancelling(true);
+    try {
+      // Cancel and archive the request
+      await api.requests.update(request.id, {
+        status: 'Cancelled',
+        archived: true,
+        archivedAt: new Date().toISOString()
+      });
+      setLocalStatus('Cancelled');
+      onOfferChange?.();
+      alert('Request cancelled and archived successfully.');
+      // Redirect after a delay
+      setTimeout(() => navigate('/dashboard'), 1500);
+    } catch (error) {
+      console.error('Error cancelling request:', error);
+      alert('Failed to cancel request. Please try again.');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+>>>>>>> master-local/master
   const handleShare = async () => {
     if (navigator.share) {
       try {
@@ -479,6 +590,7 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
 
             {/* Right Column: Action Box */}
             <div className="space-y-6">
+<<<<<<< HEAD
                 {/* Posted By Card */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                     <h3 className="text-xs font-bold text-gray-500 uppercase mb-4">Posted By</h3>
@@ -517,6 +629,111 @@ export const RequestDetails: React.FC<RequestDetailsProps> = ({ requests, curren
                       Contact User
                     </button>
                 </div>
+=======
+                {/* Posted By Card - Only show if finder viewing a requester's request */}
+                {currentUser?.role === 'finder' && !isRequester && (
+                  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                      <h3 className="text-xs font-bold text-gray-500 uppercase mb-4">Posted By</h3>
+                      <div className="flex items-center mb-4">
+                          <img src={request.postedBy.avatar} alt={request.postedBy.name} className="h-12 w-12 rounded-full mr-3" />
+                          <div>
+                              <Link to={`/profile/${request.postedBy.id}`} className="font-bold text-gray-900 hover:underline">{request.postedBy.name}</Link>
+                              <p className="text-sm text-gray-500">Joined 2021</p>
+                          </div>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          // Check if user is logged in
+                          const { data: { user } } = await supabase.auth.getUser();
+                          if (!user) {
+                            alert('Please log in to contact the user');
+                            navigate('/login');
+                            return;
+                          }
+
+                          setContactingUser(true);
+                          // Navigate to messages with the request owner's ID
+                          navigate('/messages', {
+                            state: {
+                              startChatWithUserId: request.postedBy.id,
+                              requestId: request.id
+                            }
+                          });
+                        }}
+                        disabled={contactingUser}
+                        className="w-full border border-gray-300 text-gray-700 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 flex items-center justify-center disabled:opacity-50"
+                      >
+                        {contactingUser ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : null}
+                        Contact User
+                      </button>
+                  </div>
+                )}
+
+                {/* Requester Actions Card - Only show if requester viewing own request */}
+                {isRequester && (
+                  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 space-y-3">
+                    <h3 className="text-xs font-bold text-gray-500 uppercase mb-4">Manage Request</h3>
+
+                    {/* Edit Button */}
+                    <button
+                      onClick={() => navigate(`/edit-request/${request.id}`)}
+                      className="w-full flex items-center justify-center bg-deepBlue text-white py-2 rounded-lg text-sm font-medium hover:bg-opacity-90 transition-colors"
+                    >
+                      <Edit className="h-4 w-4 mr-2" /> Edit Request
+                    </button>
+
+                    {/* Extend Deadline Button */}
+                    {localStatus === 'Open' && (
+                      <div className="space-y-2">
+                        <input
+                          type="date"
+                          value={newDeadline}
+                          onChange={(e) => setNewDeadline(e.target.value)}
+                          min={request.deadline}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-softTeal focus:outline-none"
+                          placeholder="Select new deadline"
+                        />
+                        <button
+                          onClick={handleExtendDeadline}
+                          disabled={extendingDeadline || !newDeadline}
+                          className="w-full flex items-center justify-center border border-gray-300 text-gray-700 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {extendingDeadline ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Extending...
+                            </>
+                          ) : (
+                            <>
+                              <Clock className="h-4 w-4 mr-2" /> Extend Deadline
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Cancel Request Button */}
+                    {localStatus !== 'Completed' && localStatus !== 'Cancelled' && (
+                      <button
+                        onClick={handleCancelRequest}
+                        disabled={cancelling}
+                        className="w-full flex items-center justify-center border border-red-300 text-red-600 py-2 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {cancelling ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Cancelling...
+                          </>
+                        ) : (
+                          <>
+                            <X className="h-4 w-4 mr-2" /> Cancel Request
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                )}
+>>>>>>> master-local/master
 
                 {/* Make an Offer Form */}
                 <div id="offer-form" className="bg-white p-6 rounded-xl shadow-lg border border-blue-100 sticky top-24">

@@ -183,6 +183,7 @@ export const Home: React.FC<HomeProps> = ({ featuredRequests }) => {
             <p className="text-gray-500 text-center mb-8 text-sm">Real requests from people near you</p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+<<<<<<< HEAD
               {featuredRequests.slice(0, 6).map((request) => (
                 <Link 
                   key={request.id} 
@@ -208,6 +209,43 @@ export const Home: React.FC<HomeProps> = ({ featuredRequests }) => {
                       <MapPin className="h-3 w-3 mr-1" />
                       {request.location}
                     </span>
+=======
+              {featuredRequests
+                .filter(r => r.status === 'Open' && !r.archived)
+                .slice(0, 6)
+                .map((request) => (
+                <Link
+                  key={request.id}
+                  to={`/request/${request.id}`}
+                  className="bg-white rounded-xl overflow-hidden border border-gray-100 hover:shadow-lg transition-all hover:-translate-y-0.5"
+                >
+                  {request.imageUrl && (
+                    <div className="h-48 bg-gray-200 relative overflow-hidden">
+                      <img src={request.imageUrl} alt={request.title} className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <div className="p-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <span className="bg-softTeal/10 text-softTeal text-xs font-medium px-2.5 py-1 rounded-full">
+                        {request.category}
+                      </span>
+                      <span className="text-xs text-gray-400 flex items-center">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {new Date(request.createdAt || '').toLocaleDateString()}
+                      </span>
+                    </div>
+                    <h3 className="font-semibold text-deepBlue mb-2 line-clamp-2">{request.title}</h3>
+                    <p className="text-gray-500 text-sm mb-3 line-clamp-2">{request.description}</p>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-deepBlue font-medium">
+                        UGX {request.budgetMin?.toLocaleString()} - {request.budgetMax?.toLocaleString()}
+                      </span>
+                      <span className="text-gray-400 flex items-center text-xs">
+                        <MapPin className="h-3 w-3 mr-1" />
+                        {request.location}
+                      </span>
+                    </div>
+>>>>>>> master-local/master
                   </div>
                 </Link>
               ))}

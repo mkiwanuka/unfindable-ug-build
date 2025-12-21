@@ -20,7 +20,11 @@ export function useRequests(options: UseRequestsOptions = {}) {
 export function useOpenRequests(limit = 50) {
   return useQuery({
     queryKey: ['requests', 'open', limit],
+<<<<<<< HEAD
     queryFn: () => api.requests.getAll({ limit, status: 'Open' }),
+=======
+    queryFn: () => api.requests.getAll({ limit, status: null }),
+>>>>>>> master-local/master
     staleTime: 1000 * 60, // 1 minute for homepage
   });
 }

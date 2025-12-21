@@ -292,6 +292,128 @@ export const api = {
 
       if (error) throw error;
     },
+<<<<<<< HEAD
+=======
+
+    async update(requestId: string, updates: {
+      title?: string;
+      category?: string;
+      description?: string;
+      budgetMin?: number;
+      budgetMax?: number;
+      deadline?: string;
+      location?: string;
+      imageUrl?: string;
+      status?: 'Open' | 'In Progress' | 'Completed' | 'Cancelled';
+      completedAt?: string;
+      completedById?: string;
+      archived?: boolean;
+      archivedAt?: string;
+    }): Promise<Request> {
+      const updateData: Record<string, any> = {};
+
+      if (updates.title !== undefined) updateData.title = updates.title;
+      if (updates.category !== undefined) updateData.category = updates.category;
+      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.budgetMin !== undefined) updateData.budget_min = updates.budgetMin;
+      if (updates.budgetMax !== undefined) updateData.budget_max = updates.budgetMax;
+      if (updates.deadline !== undefined) updateData.deadline = updates.deadline;
+      if (updates.location !== undefined) updateData.location = updates.location;
+      if (updates.imageUrl !== undefined) updateData.image_url = updates.imageUrl;
+      if (updates.status !== undefined) updateData.status = updates.status;
+      if (updates.completedAt !== undefined) updateData.completed_at = updates.completedAt;
+      if (updates.completedById !== undefined) updateData.completed_by_id = updates.completedById;
+      if (updates.archived !== undefined) updateData.archived = updates.archived;
+      if (updates.archivedAt !== undefined) updateData.archived_at = updates.archivedAt;
+
+      const { data, error } = await supabase
+        .from('requests')
+        .update(updateData)
+        .eq('id', requestId)
+        .select(`
+          *,
+          profiles!requests_posted_by_id_fkey (
+            *,
+            user_roles (role)
+          )
+        `)
+        .single();
+
+      if (error) throw error;
+
+      const profile = (data as any).profiles;
+      const postedBy = profile
+        ? mapJoinedProfileToUser(profile)
+        : createUnknownUser(data.posted_by_id);
+
+      return {
+        id: data.id,
+        title: data.title,
+        category: data.category,
+        description: data.description,
+        budgetMin: Number(data.budget_min),
+        budgetMax: Number(data.budget_max),
+        deadline: data.deadline,
+        location: data.location,
+        status: data.status as 'Open' | 'In Progress' | 'Completed' | 'Cancelled',
+        offerCount: data.offer_count,
+        imageUrl: data.image_url,
+        postedBy,
+        createdAt: data.created_at,
+        completedAt: data.completed_at,
+        completedById: data.completed_by_id,
+        archived: data.archived || false,
+        archivedAt: data.archived_at,
+      };
+    },
+
+    async extendDeadline(requestId: string, newDeadline: string): Promise<Request> {
+      const { data, error } = await supabase
+        .from('requests')
+        .update({ deadline: newDeadline })
+        .eq('id', requestId)
+        .select(`
+          *,
+          profiles!requests_posted_by_id_fkey (
+            *,
+            user_roles (role)
+          )
+        `)
+        .single();
+
+      if (error) throw error;
+
+      const profile = (data as any).profiles;
+      const postedBy = profile
+        ? mapJoinedProfileToUser(profile)
+        : createUnknownUser(data.posted_by_id);
+
+      return {
+        id: data.id,
+        title: data.title,
+        category: data.category,
+        description: data.description,
+        budgetMin: Number(data.budget_min),
+        budgetMax: Number(data.budget_max),
+        deadline: data.deadline,
+        location: data.location,
+        status: data.status as 'Open' | 'In Progress' | 'Completed',
+        offerCount: data.offer_count,
+        imageUrl: data.image_url,
+        postedBy,
+        createdAt: data.created_at,
+      };
+    },
+
+    async cancel(requestId: string): Promise<void> {
+      const { error } = await supabase
+        .from('requests')
+        .update({ status: 'Cancelled' })
+        .eq('id', requestId);
+
+      if (error) throw error;
+    },
+>>>>>>> master-local/master
   },
 
   offers: {

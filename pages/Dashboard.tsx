@@ -1,11 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Request } from '../types';
+<<<<<<< HEAD
 import { Package, Star, Settings, FileText, ExternalLink, Loader2, Camera, X, Plus, Check, Search, ChevronDown, Wallet, Clock } from 'lucide-react';
+=======
+import { Package, Star, Settings, FileText, ExternalLink, Loader2, Camera, X, Plus, Check, Search, ChevronDown, Wallet, Clock, MessageSquare, CheckCircle } from 'lucide-react';
+>>>>>>> master-local/master
 import { api } from '../lib/api';
 import { useReviews, ReviewData } from '../hooks/useReviews';
 import { useFinderStats } from '../hooks/useFinderStats';
 import { useFinderOffers, OfferWithRequest } from '../hooks/useFinderOffers';
+<<<<<<< HEAD
+=======
+import { useRequestsWithConversations, RequestWithConversation } from '../hooks/useRequestsWithConversations';
+import { useAvailableRequests } from '../hooks/useAvailableRequests';
+import { useViewedRequests, ViewedRequest } from '../hooks/useViewedRequests';
+>>>>>>> master-local/master
 import { formatActivityDate, formatRelativeDate } from '../lib/dateUtils';
 import { profileUpdateSchema } from '../lib/schemas';
 
@@ -110,7 +120,255 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   );
 };
 
+<<<<<<< HEAD
 // Offers Tab Component
+=======
+// Browse and Track Tab Component (New - combines offers, chats, available requests, and viewed)
+const BrowseAndTrackTab: React.FC<{ userId: string; rating?: number | null }> = ({ userId, rating }) => {
+  const { data: myOffers = [], isLoading: offersLoading, error: offersError } = useFinderOffers(userId);
+  const { data: activeChats = [], isLoading: chatsLoading, error: chatsError } = useRequestsWithConversations(userId);
+  const { data: availableRequests = [], isLoading: availableLoading, error: availableError } = useAvailableRequests(userId, 20);
+  const { data: viewedRequests = [], isLoading: viewedLoading, error: viewedError } = useViewedRequests(userId, 20);
+
+  const formatTimeAgo = (dateString: string): string => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (seconds < 60) return 'just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  const ErrorState: React.FC<{ title: string }> = ({ title }) => (
+    <div className="bg-white p-6 rounded-xl shadow-sm border border-red-100 bg-red-50 text-center">
+      <div className="text-red-400 mb-3">⚠️</div>
+      <p className="text-red-800 font-medium">{title}</p>
+      <p className="text-sm text-red-600 mt-1">Please try refreshing the page</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-8">
+      <h2 className="text-2xl font-bold text-deepBlue">Browse & Track</h2>
+
+      {/* Finder Stats Card */}
+      <FinderStatsCard userId={userId} rating={rating} />
+
+      {/* Section 1: My Offers */}
+      {offersLoading ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex justify-center">
+          <Loader2 className="h-6 w-6 text-softTeal animate-spin" />
+        </div>
+      ) : myOffers.length > 0 ? (
+        <section>
+          <h3 className="text-xl font-bold text-gray-800 mb-4">My Offers ({myOffers.length})</h3>
+          <div className="space-y-4">
+            {myOffers.map((offer) => (
+              <div key={offer.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+                  <div className="flex-1">
+                    <Link
+                      to={`/request/${offer.request_id}`}
+                      className="font-bold text-lg text-gray-800 hover:text-softTeal transition-colors"
+                    >
+                      {offer.request?.title || 'Request'}
+                    </Link>
+                    <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-gray-500">
+                      <span className="font-semibold text-deepBlue">
+                        UGX {offer.price.toLocaleString()}
+                      </span>
+                      <span className="flex items-center">
+                        <Clock className="h-4 w-4 mr-1" />
+                        {offer.delivery_days} day{offer.delivery_days !== 1 ? 's' : ''}
+                      </span>
+                      <span>•</span>
+                      <span>{formatRelativeDate(offer.created_at)}</span>
+                    </div>
+                    {offer.message && (
+                      <p className="mt-2 text-sm text-gray-600 line-clamp-2">{offer.message}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <StatusBadge status={offer.status} />
+                    <Link
+                      to={`/request/${offer.request_id}`}
+                      className="text-sm text-softTeal hover:underline"
+                    >
+                      View Request
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {/* Section 2: Active Conversations */}
+      {chatsError ? (
+        <ErrorState title="Failed to load conversations" />
+      ) : chatsLoading ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex justify-center">
+          <Loader2 className="h-6 w-6 text-softTeal animate-spin" />
+        </div>
+      ) : (
+        <section>
+          <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+            <MessageSquare className="h-5 w-5 mr-2 text-softTeal" />
+            Active Conversations ({activeChats.length})
+          </h3>
+          {activeChats.length === 0 ? (
+            <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center">
+              <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">No active conversations yet</p>
+              <p className="text-sm text-gray-400 mt-1">Start chatting about requests below</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {activeChats.map((chat) => (
+                <div key={chat.conversationId} className="bg-white p-4 rounded-lg border border-gray-200 hover:border-softTeal transition-colors">
+                  <Link
+                    to={`/request/${chat.id}`}
+                    className="font-semibold text-gray-800 hover:text-softTeal transition-colors block mb-2"
+                  >
+                    {chat.title}
+                  </Link>
+                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                    {chat.lastMessage}
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span>{chat.partnerName}</span>
+                    <Link
+                      to="/messages"
+                      className="text-softTeal hover:underline font-medium"
+                    >
+                      Continue Chat
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Section 3: Available Requests */}
+      {availableError ? (
+        <ErrorState title="Failed to load available requests" />
+      ) : availableLoading ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex justify-center">
+          <Loader2 className="h-6 w-6 text-softTeal animate-spin" />
+        </div>
+      ) : (
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold text-gray-800 flex items-center">
+              <Search className="h-5 w-5 mr-2 text-softTeal" />
+              Available Requests ({availableRequests.length})
+            </h3>
+            <Link to="/search" className="text-sm text-softTeal hover:underline font-medium">
+              Browse All
+            </Link>
+          </div>
+          {availableRequests.length === 0 ? (
+            <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center">
+              <Package className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">No new available requests right now</p>
+              <p className="text-sm text-gray-400 mt-1">Check back later or browse all requests</p>
+              <Link
+                to="/search"
+                className="inline-flex items-center bg-softTeal text-white px-4 py-2 rounded-lg font-medium hover:bg-opacity-90 transition-all mt-4"
+              >
+                <Search className="mr-2 h-4 w-4" /> Browse All Requests
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {availableRequests.map((req) => (
+                <Link
+                  key={req.id}
+                  to={`/request/${req.id}`}
+                  className="bg-white p-4 rounded-lg border border-gray-200 hover:border-softTeal hover:shadow-md transition-all group"
+                >
+                  {req.imageUrl && (
+                    <img
+                      src={req.imageUrl}
+                      alt={req.title}
+                      className="w-full h-32 object-cover rounded mb-3 group-hover:opacity-80 transition-opacity"
+                    />
+                  )}
+                  <h4 className="font-semibold text-gray-800 group-hover:text-softTeal transition-colors mb-1 line-clamp-2">
+                    {req.title}
+                  </h4>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-bold text-deepBlue">
+                      UGX {req.budgetMin.toLocaleString()} - {req.budgetMax.toLocaleString()}
+                    </span>
+                    <span className="text-xs text-gray-500">{req.offerCount} offers</span>
+                  </div>
+                  <p className="text-xs text-gray-500">{req.location}</p>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Section 4: Recently Viewed */}
+      {viewedError ? (
+        <ErrorState title="Failed to load recently viewed requests" />
+      ) : viewedLoading ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex justify-center">
+          <Loader2 className="h-6 w-6 text-softTeal animate-spin" />
+        </div>
+      ) : (
+        <section>
+          <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+            <Clock className="h-5 w-5 mr-2 text-softTeal" />
+            Recently Viewed ({viewedRequests.length})
+          </h3>
+          {viewedRequests.length === 0 ? (
+            <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center">
+              <Clock className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">No viewed requests yet</p>
+              <p className="text-sm text-gray-400 mt-1">Start browsing requests to see your history</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {viewedRequests.map((viewed) => (
+                <Link
+                  key={viewed.requestId}
+                  to={`/request/${viewed.requestId}`}
+                  className="block bg-white p-4 rounded-lg border border-gray-200 hover:border-softTeal hover:bg-blue-50 transition-all group"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-800 group-hover:text-softTeal transition-colors">
+                        {viewed.title}
+                      </h4>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {viewed.category} • UGX {viewed.budgetMin.toLocaleString()} - {viewed.budgetMax.toLocaleString()}
+                      </p>
+                    </div>
+                    <span className="text-xs text-gray-400 ml-2 whitespace-nowrap">
+                      Viewed {formatTimeAgo(viewed.viewedAt)}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+    </div>
+  );
+};
+
+// Offers Tab Component (kept for backwards compatibility, but no longer used)
+>>>>>>> master-local/master
 const OffersTab: React.FC<{ userId: string; rating?: number | null }> = ({ userId, rating }) => {
   const { offers, loading, error } = useFinderOffers(userId);
 
@@ -252,8 +510,13 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpdate }) => {
   const navigate = useNavigate();
+<<<<<<< HEAD
   const [activeTab, setActiveTab] = useState<'requests' | 'offers' | 'settings' | 'reviews'>(
     user.role === 'finder' ? 'offers' : 'requests'
+=======
+  const [activeTab, setActiveTab] = useState<'active' | 'completed' | 'browse' | 'settings' | 'reviews'>(
+    user.role === 'finder' ? 'browse' : 'active'
+>>>>>>> master-local/master
   );
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
   const [showFinderOnboarding, setShowFinderOnboarding] = useState(false);
@@ -305,7 +568,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
     try {
       const updatedUser = await api.auth.updateUserRole(user.id, newRole);
       onUserUpdate(updatedUser);
+<<<<<<< HEAD
       setActiveTab(newRole === 'finder' ? 'offers' : 'requests');
+=======
+      setActiveTab(newRole === 'finder' ? 'browse' : 'active');
+>>>>>>> master-local/master
     } catch (error) {
       console.error("Failed to update role", error);
       alert("Failed to switch role. Please try again.");
@@ -454,7 +721,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
           const updatedUser = await api.auth.updateUserRole(user.id, 'finder');
           onUserUpdate(updatedUser);
           setShowFinderOnboarding(false);
+<<<<<<< HEAD
           setActiveTab('offers');
+=======
+          setActiveTab('browse');
+>>>>>>> master-local/master
       } catch (e) {
           console.error(e);
           alert("Failed to complete onboarding.");
@@ -625,20 +896,44 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
             <nav className={`space-y-1 ${isMobileMenuOpen ? 'block' : 'hidden md:block'}`}>
               
               {user.role === 'requester' && (
+<<<<<<< HEAD
                 <button
                   onClick={() => { setActiveTab('requests'); setIsMobileMenuOpen(false); }}
                   className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'requests' ? 'bg-deepBlue text-white' : 'text-gray-600 hover:bg-gray-50'}`}
                 >
                   <FileText className="mr-3 h-5 w-5" /> My Requests
                 </button>
+=======
+                <>
+                  <button
+                    onClick={() => { setActiveTab('active'); setIsMobileMenuOpen(false); }}
+                    className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'active' ? 'bg-deepBlue text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    <FileText className="mr-3 h-5 w-5" /> Active Requests
+                  </button>
+                  <button
+                    onClick={() => { setActiveTab('completed'); setIsMobileMenuOpen(false); }}
+                    className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'completed' ? 'bg-deepBlue text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    <CheckCircle className="mr-3 h-5 w-5" /> Completed
+                  </button>
+                </>
+>>>>>>> master-local/master
               )}
               {user.role === 'finder' && (
                 <>
                    <button
+<<<<<<< HEAD
                     onClick={() => { setActiveTab('offers'); setIsMobileMenuOpen(false); }}
                     className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'offers' ? 'bg-deepBlue text-white' : 'text-gray-600 hover:bg-gray-50'}`}
                   >
                     <Package className="mr-3 h-5 w-5" /> My Offers
+=======
+                    onClick={() => { setActiveTab('browse'); setIsMobileMenuOpen(false); }}
+                    className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'browse' ? 'bg-deepBlue text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    <Search className="mr-3 h-5 w-5" /> Browse & Track
+>>>>>>> master-local/master
                   </button>
                   <button
                     onClick={() => { setActiveTab('reviews'); setIsMobileMenuOpen(false); }}
@@ -661,6 +956,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
           <div className="flex-1">
             
             {/* Requests Tab */}
+<<<<<<< HEAD
             {activeTab === 'requests' && (
               <div className="space-y-6">
                 <h2 className="text-2xl font-bold text-deepBlue">My Active Requests</h2>
@@ -685,14 +981,86 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, requests, onUserUpda
                     <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                     <p className="text-gray-500 mb-4">No requests posted yet.</p>
                     <Link to="/post-request" className="bg-softTeal text-white px-4 py-2 rounded-lg text-sm font-medium">Post Your First Request</Link>
+=======
+            {/* Active Requests Tab - Requester Only */}
+            {activeTab === 'active' && user.role === 'requester' && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-deepBlue">My Active Requests</h2>
+                {requests.length > 0 ? (
+                  requests
+                    .filter(r => r.postedBy.id === user.id && (r.status === 'Open' || r.status === 'In Progress') && !r.archived)
+                    .map(req => (
+                      <div key={req.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-lg text-gray-800">{req.title}</h3>
+                          <p className="text-sm text-gray-500">Posted {formatRelativeDate(req.createdAt)}</p>
+                          <div className="mt-2 flex space-x-3">
+                            <span className={`px-2 py-1 text-xs rounded-md font-semibold ${req.status === 'Open' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                              {req.status}
+                            </span>
+                            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-md font-semibold">{req.offerCount} Offers Received</span>
+                          </div>
+                        </div>
+                        <Link to={`/request/${req.id}`} className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 text-center">
+                           Manage Offers
+                        </Link>
+                      </div>
+                    ))
+                ) : (
+                  <div className="bg-white p-12 rounded-xl shadow-sm text-center border border-dashed border-gray-300">
+                    <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 mb-4">No active requests. Great work finishing them!</p>
+                    <Link to="/post-request" className="bg-softTeal text-white px-4 py-2 rounded-lg text-sm font-medium">Post a New Request</Link>
+>>>>>>> master-local/master
                   </div>
                 )}
               </div>
             )}
 
+<<<<<<< HEAD
              {/* Offers Tab (Finder) */}
              {activeTab === 'offers' && (
               <OffersTab userId={user.id} rating={user.rating} />
+=======
+            {/* Completed Requests Tab - Requester Only */}
+            {activeTab === 'completed' && user.role === 'requester' && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-deepBlue">Completed Requests</h2>
+                <p className="text-gray-600">Your completed requests and their history</p>
+                {requests.length > 0 ? (
+                  requests
+                    .filter(r => r.postedBy.id === user.id && r.status === 'Completed' && !r.archived)
+                    .map(req => (
+                      <div key={req.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-lg text-gray-800">{req.title}</h3>
+                          <p className="text-sm text-gray-500">Posted {formatRelativeDate(req.createdAt)}</p>
+                          {req.completedAt && (
+                            <p className="text-sm text-green-600 font-medium">Completed {formatRelativeDate(req.completedAt)}</p>
+                          )}
+                          <div className="mt-2 flex space-x-3">
+                            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-md font-semibold">Completed</span>
+                            <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-md font-semibold">{req.offerCount} Offer(s)</span>
+                          </div>
+                        </div>
+                        <Link to={`/request/${req.id}`} className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 text-center">
+                           View Details
+                        </Link>
+                      </div>
+                    ))
+                ) : (
+                  <div className="bg-white p-12 rounded-xl shadow-sm text-center border border-dashed border-gray-300">
+                    <CheckCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">No completed requests yet. Start by posting a request!</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+             {/* Browse & Track Tab (Finder) */}
+             {activeTab === 'browse' && (
+              <BrowseAndTrackTab userId={user.id} rating={user.rating} />
+>>>>>>> master-local/master
              )}
 
              {/* Reviews Tab (Finder Only) */}

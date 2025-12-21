@@ -1,8 +1,15 @@
+<<<<<<< HEAD
 import React, { CSSProperties, useRef, useEffect } from 'react';
 import { Check, CheckCheck, Clock, AlertCircle } from 'lucide-react';
 import { MessageReactions } from './MessageReactions';
 import { FileAttachment } from './FileAttachment';
 import { useSharedResizeObserver } from '../contexts/ResizeObserverContext';
+=======
+import React, { CSSProperties } from 'react';
+import { Check, CheckCheck, Clock, AlertCircle } from 'lucide-react';
+import { MessageReactions } from './MessageReactions';
+import { FileAttachment } from './FileAttachment';
+>>>>>>> master-local/master
 import type { MessageStatus } from '../stores/useMessageStore';
 
 interface Message {
@@ -40,7 +47,10 @@ interface MessageRowProps {
   currentUserId: string | null;
   reactions: MessageReactionsMap;
   onReactionChange: () => void;
+<<<<<<< HEAD
   onHeightChange?: (index: number, height: number) => void;
+=======
+>>>>>>> master-local/master
 }
 
 // Message status indicator component (WhatsApp-style)
@@ -82,6 +92,7 @@ export const MessageRow: React.FC<MessageRowProps> = ({
   currentUserId,
   reactions,
   onReactionChange,
+<<<<<<< HEAD
   onHeightChange,
 }) => {
   const rowRef = useRef<HTMLDivElement>(null);
@@ -101,6 +112,10 @@ export const MessageRow: React.FC<MessageRowProps> = ({
       };
     }
   }, [index, onHeightChange, observe, unobserve]);
+=======
+}) => {
+  const msg = messages[index];
+>>>>>>> master-local/master
 
   if (!msg) return null;
 
@@ -117,7 +132,10 @@ export const MessageRow: React.FC<MessageRowProps> = ({
 
   return (
     <div
+<<<<<<< HEAD
       ref={rowRef}
+=======
+>>>>>>> master-local/master
       style={style}
       {...ariaAttributes}
       className={`flex flex-col py-1 px-3 sm:px-4 w-full overflow-hidden ${isOwnMessage ? 'items-end' : 'items-start'}`}

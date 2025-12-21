@@ -467,6 +467,7 @@ export type Database = {
         }
         Relationships: []
       }
+<<<<<<< HEAD
       request_views: {
         Row: {
           id: string
@@ -505,6 +506,13 @@ export type Database = {
           category: string
           completed_at: string | null
           completed_by_id: string | null
+=======
+      requests: {
+        Row: {
+          budget_max: number
+          budget_min: number
+          category: string
+>>>>>>> master-local/master
           created_at: string | null
           deadline: string
           description: string
@@ -518,6 +526,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+<<<<<<< HEAD
           archived?: boolean | null
           archived_at?: string | null
           budget_max: number
@@ -525,6 +534,11 @@ export type Database = {
           category: string
           completed_at?: string | null
           completed_by_id?: string | null
+=======
+          budget_max: number
+          budget_min: number
+          category: string
+>>>>>>> master-local/master
           created_at?: string | null
           deadline: string
           description: string
@@ -538,6 +552,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+<<<<<<< HEAD
           archived?: boolean | null
           archived_at?: string | null
           budget_max?: number
@@ -545,6 +560,11 @@ export type Database = {
           category?: string
           completed_at?: string | null
           completed_by_id?: string | null
+=======
+          budget_max?: number
+          budget_min?: number
+          category?: string
+>>>>>>> master-local/master
           created_at?: string | null
           deadline?: string
           description?: string
@@ -640,6 +660,38 @@ export type Database = {
           },
         ]
       }
+<<<<<<< HEAD
+=======
+      request_views: {
+        Row: {
+          id: string
+          request_id: string
+          viewer_id: string
+          viewed_at: string
+        }
+        Insert: {
+          id?: string
+          request_id: string
+          viewer_id: string
+          viewed_at?: string
+        }
+        Update: {
+          id?: string
+          request_id?: string
+          viewer_id?: string
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_views_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+>>>>>>> master-local/master
       role_audit_log: {
         Row: {
           action: string

@@ -286,6 +286,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
           {/* Password Field */}
           <div>
+<<<<<<< HEAD
             <div className="flex justify-between items-center mb-2">
               <label htmlFor="password" className="text-sm text-gray-400">Password</label>
               {!isSignup && (
@@ -307,6 +308,48 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               autoComplete={isSignup ? 'new-password' : 'current-password'}
               className="w-full bg-transparent border-b border-gray-600 text-white placeholder-gray-500 py-2 focus:outline-none focus:border-softTeal transition-colors" 
             />
+=======
+            <label htmlFor="password" className="block text-sm text-gray-400 mb-2">Password</label>
+            <input
+              id="password"
+              type="password"
+              value={formData.password}
+              onChange={handleInputChange}
+              placeholder="••••••••"
+              autoComplete={isSignup ? 'new-password' : 'current-password'}
+              className="w-full bg-transparent border-b border-gray-600 text-white placeholder-gray-500 py-2 focus:outline-none focus:border-softTeal transition-colors"
+            />
+            {!isSignup && (
+              <button
+                type="button"
+                className="text-sm text-softTeal hover:text-softTeal/80 transition-colors mt-2"
+                onClick={async () => {
+                  if (!formData.email) {
+                    setError('Please enter your email address first');
+                    return;
+                  }
+                  setError(null);
+                  setIsLoading(true);
+                  try {
+                    const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
+                      redirectTo: `${window.location.origin}/reset-password`,
+                    });
+                    if (error) {
+                      setError(error.message);
+                    } else {
+                      setSuccessMessage('Password reset email sent! Check your inbox.');
+                    }
+                  } catch (err: any) {
+                    setError(err.message || 'Failed to send reset email');
+                  } finally {
+                    setIsLoading(false);
+                  }
+                }}
+              >
+                Forgot password
+              </button>
+            )}
+>>>>>>> master-local/master
           </div>
            
           {/* Submit Button */}

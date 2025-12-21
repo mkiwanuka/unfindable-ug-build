@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(supabase migration:*)",
+      "Bash(npm install:*)"
+    ]
+  }
+}

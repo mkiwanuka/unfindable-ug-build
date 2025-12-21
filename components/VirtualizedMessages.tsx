@@ -35,8 +35,13 @@ interface VirtualizedMessagesProps {
   onLoadMore?: () => void;
 }
 
+<<<<<<< HEAD
 export const VirtualizedMessages: React.FC<VirtualizedMessagesProps> = ({ 
   messages, 
+=======
+export const VirtualizedMessages: React.FC<VirtualizedMessagesProps> = ({
+  messages,
+>>>>>>> master-local/master
   currentUserId,
   reactions = {},
   onReactionChange,
@@ -45,15 +50,23 @@ export const VirtualizedMessages: React.FC<VirtualizedMessagesProps> = ({
   onLoadMore
 }) => {
   const listRef = useListRef();
+<<<<<<< HEAD
   const prevMessagesRef = useRef<Message[]>([]);
   const hasScrolledInitialRef = useRef(false);
   const [hasRendered, setHasRendered] = useState(false);
   
   const dynamicRowHeight = useDynamicRowHeight({ 
+=======
+  const prevCountRef = useRef<number>(0);
+  const [hasRendered, setHasRendered] = useState(false);
+
+  const dynamicRowHeight = useDynamicRowHeight({
+>>>>>>> master-local/master
     defaultRowHeight: 80,
     key: messages.length
   });
 
+<<<<<<< HEAD
   // Reset scroll state when messages array is completely replaced (new conversation)
   useEffect(() => {
     const prevMessages = prevMessagesRef.current;
@@ -70,12 +83,16 @@ export const VirtualizedMessages: React.FC<VirtualizedMessagesProps> = ({
   }, [messages]);
 
   // Handle initial scroll when list first renders
+=======
+  // Handle initial scroll when list first renders with messages
+>>>>>>> master-local/master
   const handleRowsRendered = useCallback(() => {
     if (!hasRendered && messages.length > 0) {
       setHasRendered(true);
       // Scroll to bottom on initial render
       setTimeout(() => {
         try {
+<<<<<<< HEAD
           listRef.current?.scrollToRow({ 
             index: messages.length - 1, 
             align: 'end',
@@ -124,6 +141,46 @@ export const VirtualizedMessages: React.FC<VirtualizedMessagesProps> = ({
     // Update ref for next comparison
     prevMessagesRef.current = [...messages];
   }, [messages]);
+=======
+          listRef.current?.scrollToRow({
+            index: messages.length - 1,
+            align: 'end',
+            behavior: 'instant'
+          });
+        } catch (e) {
+          console.warn('Initial scrollToRow failed', e);
+        }
+      }, 50);
+    }
+  }, [hasRendered, messages.length]);
+
+  // Only scroll when genuinely new messages arrive (count increased)
+  // Skip all replacements, updates, and message re-renders
+  useEffect(() => {
+    const prevCount = prevCountRef.current;
+    const currentCount = messages.length;
+
+    // Only scroll if message count actually increased (new message added)
+    if (currentCount > prevCount) {
+      // Add a delay to let the virtual list render the new message
+      const scrollTimer = setTimeout(() => {
+        try {
+          listRef.current?.scrollToRow({
+            index: currentCount - 1,
+            align: 'end',
+            behavior: 'auto' // Use auto for smooth, natural scrolling
+          });
+        } catch (e) {
+          console.warn('Scroll to new message failed', e);
+        }
+      }, 50);
+
+      return () => clearTimeout(scrollTimer);
+    }
+
+    prevCountRef.current = currentCount;
+  }, [messages.length]);
+>>>>>>> master-local/master
 
   const handleHeightChange = useCallback((index: number, height: number) => {
     dynamicRowHeight.setRowHeight(index, height + 8);

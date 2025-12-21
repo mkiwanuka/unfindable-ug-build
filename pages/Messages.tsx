@@ -1,10 +1,19 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+<<<<<<< HEAD
 import { Send, Paperclip, ArrowLeft, MessageSquare, Search, X, Loader2 } from 'lucide-react';
+=======
+import { Send, Paperclip, ArrowLeft, MessageSquare, Search, X, Loader2, AlertCircle } from 'lucide-react';
+>>>>>>> master-local/master
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../src/integrations/supabase/client';
 import { getOrCreateConversation } from '../lib/conversationUtils';
 import { useConversations, useInvalidateConversations, ConversationWithDetails } from '../hooks/useConversations';
+<<<<<<< HEAD
 import { VirtualizedMessages } from '../components/VirtualizedMessages';
+=======
+import { SimpleMessages } from '../components/SimpleMessages';
+import { ChatErrorBoundary } from '../components/ChatErrorBoundary';
+>>>>>>> master-local/master
 import { realtimeManager } from '../lib/realtimeManager';
 import { messageSchema } from '../lib/schemas';
 import { TypingIndicator } from '../components/TypingIndicator';
@@ -362,6 +371,10 @@ export const Messages: React.FC = () => {
       // Replace temp message with real one (has real ID and 'sent' status)
       if (data) {
         replaceMessage(tempId, data);
+<<<<<<< HEAD
+=======
+        // Note: Push notifications are handled server-side via triggers
+>>>>>>> master-local/master
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -492,19 +505,33 @@ export const Messages: React.FC = () => {
               </div>
             </div>
 
+<<<<<<< HEAD
             {/* Virtualized Messages */}
             <div className="flex-1 bg-gray-50 min-h-0 relative">
               <div className="absolute inset-0">
                 <VirtualizedMessages 
                   messages={messages} 
+=======
+            {/* Messages */}
+            <div className="flex-1 bg-gray-50 min-h-0 overflow-hidden">
+              <ChatErrorBoundary>
+                <SimpleMessages
+                  messages={messages}
+>>>>>>> master-local/master
                   currentUserId={currentUserId}
                   reactions={reactions}
                   onReactionChange={refetchReactions}
                   hasMore={hasMore}
                   loadingMore={loadingMore}
                   onLoadMore={loadMore}
+<<<<<<< HEAD
                 />
               </div>
+=======
+                  isLoading={isLoading}
+                />
+              </ChatErrorBoundary>
+>>>>>>> master-local/master
             </div>
 
             {/* Typing Indicator */}

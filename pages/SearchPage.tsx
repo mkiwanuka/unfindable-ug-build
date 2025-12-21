@@ -148,6 +148,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({ requests }) => {
 
   const filteredRequests = requests.filter(req => {
     const isOpen = req.status === 'Open';
+<<<<<<< HEAD
     const matchesCategory = categoryParam ? req.category === categoryParam : true;
     const matchesQuery = queryParam 
         ? (req.title.toLowerCase().includes(queryParam.toLowerCase()) || 
@@ -158,11 +159,28 @@ export const SearchPage: React.FC<SearchPageProps> = ({ requests }) => {
     const matchesSubcategory = selectedSubcategories.length > 0
         ? selectedSubcategories.some(sub => 
             req.title.toLowerCase().includes(sub.toLowerCase()) || 
+=======
+    const notArchived = !req.archived;
+    const matchesCategory = categoryParam ? req.category === categoryParam : true;
+    const matchesQuery = queryParam
+        ? (req.title.toLowerCase().includes(queryParam.toLowerCase()) ||
+           req.description.toLowerCase().includes(queryParam.toLowerCase()))
+        : true;
+
+    // Subcategory filter (simulated check in title/desc since we don't have a strictly typed subcategory field yet)
+    const matchesSubcategory = selectedSubcategories.length > 0
+        ? selectedSubcategories.some(sub =>
+            req.title.toLowerCase().includes(sub.toLowerCase()) ||
+>>>>>>> master-local/master
             req.description.toLowerCase().includes(sub.toLowerCase())
           )
         : true;
 
+<<<<<<< HEAD
     return isOpen && matchesCategory && matchesQuery && matchesSubcategory;
+=======
+    return isOpen && notArchived && matchesCategory && matchesQuery && matchesSubcategory;
+>>>>>>> master-local/master
   });
   
   const categories = [

@@ -11,6 +11,11 @@ export function useUnreadMessageCount(userId: string | null): number {
       return;
     }
 
+<<<<<<< HEAD
+=======
+    let isMounted = true;
+
+>>>>>>> master-local/master
     const fetchUnreadCount = async () => {
       try {
         // Get all conversations where user is a participant
@@ -19,6 +24,11 @@ export function useUnreadMessageCount(userId: string | null): number {
           .select('id')
           .or(`requester_id.eq.${userId},finder_id.eq.${userId}`);
 
+<<<<<<< HEAD
+=======
+        if (!isMounted) return;
+
+>>>>>>> master-local/master
         if (!conversations || conversations.length === 0) {
           setCount(0);
           return;
@@ -34,6 +44,11 @@ export function useUnreadMessageCount(userId: string | null): number {
           .neq('sender_id', userId)
           .is('read_at', null);
 
+<<<<<<< HEAD
+=======
+        if (!isMounted) return;
+
+>>>>>>> master-local/master
         if (error) throw error;
         setCount(unreadCount || 0);
       } catch (error) {
@@ -41,9 +56,17 @@ export function useUnreadMessageCount(userId: string | null): number {
       }
     };
 
+<<<<<<< HEAD
     fetchUnreadCount();
 
     // Use consolidated realtime manager
+=======
+    // Initial fetch
+    fetchUnreadCount();
+
+    // Set up subscriptions (don't wait for ready, subscribe immediately)
+    // The realtime manager will handle queuing if not ready yet
+>>>>>>> master-local/master
     const unsubInsert = realtimeManager.subscribe('messages', 'INSERT', (payload) => {
       // If the message is not from the current user, increment count
       if (payload.new && (payload.new as { sender_id: string }).sender_id !== userId) {
@@ -53,15 +76,31 @@ export function useUnreadMessageCount(userId: string | null): number {
 
     const unsubUpdate = realtimeManager.subscribe('messages', 'UPDATE', () => {
       // Refetch count on any message update (handles read_at being set)
+<<<<<<< HEAD
       fetchUnreadCount();
+=======
+      if (isMounted) {
+        fetchUnreadCount();
+      }
+>>>>>>> master-local/master
     });
 
     // Refetch when channel becomes ready (after reconnect) - persistent listener
     const unsubReady = realtimeManager.onReady(() => {
+<<<<<<< HEAD
       fetchUnreadCount();
     });
 
     return () => {
+=======
+      if (isMounted) {
+        fetchUnreadCount();
+      }
+    });
+
+    return () => {
+      isMounted = false;
+>>>>>>> master-local/master
       unsubInsert();
       unsubUpdate();
       unsubReady();

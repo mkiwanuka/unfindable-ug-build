@@ -36,6 +36,10 @@ self.addEventListener('push', (event) => {
     badge: data.badge,
     data: data.data,
     vibrate: [200, 100, 200],
+<<<<<<< HEAD
+=======
+    sound: '/notification-sound.wav',
+>>>>>>> master-local/master
     requireInteraction: false,
     tag: 'message-notification',
   };

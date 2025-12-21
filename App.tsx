@@ -6,6 +6,10 @@ import { Footer } from './components/Footer';
 import { ToastProvider } from './components/ToastProvider';
 import { Home } from './pages/Home';
 import { PostRequest } from './pages/PostRequest';
+<<<<<<< HEAD
+=======
+import { EditRequest } from './pages/EditRequest';
+>>>>>>> master-local/master
 import { Dashboard } from './pages/Dashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { Messages } from './pages/Messages';
@@ -30,6 +34,10 @@ import { AccountSettings } from './pages/AccountSettings';
 import { Payments } from './pages/Payments';
 import { User } from './types';
 import { api } from './lib/api';
+<<<<<<< HEAD
+=======
+import { ResizeObserverProvider } from './contexts/ResizeObserverContext';
+>>>>>>> master-local/master
 import { useUnreadMessageCount } from './hooks/useUnreadMessageCount';
 import { useUnreadNotificationCount } from './hooks/useUnreadNotificationCount';
 import { useOpenRequests, useUpdateRequestInCache, useInvalidateRequests } from './hooks/useRequests';
@@ -95,8 +103,17 @@ const AppContent: React.FC = () => {
 
   // Initialize realtime manager once on mount (singleton persists for app lifetime)
   useEffect(() => {
+<<<<<<< HEAD
     realtimeManager.init();
     // Don't cleanup on unmount - singleton should persist and cleanup is protected
+=======
+    try {
+      realtimeManager.init();
+      // Don't cleanup on unmount - singleton should persist and cleanup is protected
+    } catch (error) {
+      console.error('Failed to initialize realtime manager:', error);
+    }
+>>>>>>> master-local/master
   }, []);
 
   // Initial Load: Check Session
@@ -181,6 +198,13 @@ const AppContent: React.FC = () => {
               user ? <PostRequest onPostSuccess={invalidateRequests} currentUser={user} /> : <Navigate to="/login" replace />
             } />
 
+<<<<<<< HEAD
+=======
+            <Route path="/edit-request/:id" element={
+              user ? <EditRequest requests={requests} currentUser={user} onRequestUpdated={invalidateRequests} /> : <Navigate to="/login" replace />
+            } />
+
+>>>>>>> master-local/master
             <Route path="/dashboard" element={
               user ? <Dashboard user={user} requests={requests} onUserUpdate={handleUserUpdate} /> : <Navigate to="/login" replace />
             } />
@@ -214,11 +238,21 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
+<<<<<<< HEAD
       <Router>
         <ToastProvider>
           <AppContent />
         </ToastProvider>
       </Router>
+=======
+      <ResizeObserverProvider>
+        <Router>
+          <ToastProvider>
+            <AppContent />
+          </ToastProvider>
+        </Router>
+      </ResizeObserverProvider>
+>>>>>>> master-local/master
     </QueryClientProvider>
   );
 };
